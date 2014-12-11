@@ -1,6 +1,7 @@
 #!/usr/bin/env perl
 
 # Copyright (C) Yichun Zhang (agentzh)
+# Copyright (C) Guanlan Dai
 
 # TODO: port this script into the nginx core for greater flexibility
 # and better performance.
@@ -10,52 +11,70 @@ use warnings;
 
 use File::Spec ();
 use FindBin ();
-use Getopt::Std qw( getopts );
+use Getopt::Long qw( GetOptions :config no_ignore_case);
 use File::Temp qw( tempdir );
 use POSIX qw( WNOHANG );
 
-my %opts;
-getopts("he:c:VI:", \%opts)
-    or usage(1);
+my @args_all =  @ARGV;
+GetOptions("c=i",           \(my $conns_num),
+           "e=s",           \(my $src),
+           "help",          \(my $help),
+           "I=s@",          \(my $Inc),
+           "nginx=s",       \(my $path),
+           "V",             \(my $version))
+   or die usage(1);
 
-if ($opts{h}) {
+push @$Inc, '.';
+
+if ($help) {
     usage(0);
 }
 
-my $nginx_path = File::Spec->catfile($FindBin::Bin, "..", "nginx", "sbin", "nginx");
-#warn $nginx_path;
-if (!-f $nginx_path) {
-    $nginx_path = "nginx";  # find in PATH
+my $nginx_path = "";
+
+if (!defined $path) {
+    $nginx_path = File::Spec->catfile($FindBin::Bin, "..", "nginx", "sbin", "nginx");
+    if (!-f $nginx_path) {
+        $nginx_path = "nginx";  # find in PATH
+    }
+} else {
+    $nginx_path = $path;
 }
 
-if ($opts{V}) {
+#warn $nginx_path;
+
+if ($version) {
     my $cmd = "$nginx_path -V";
     exec $cmd or die "Failed to run command \"$cmd\": $!\n";
 }
 
 my $lua_package_path_config = '';
-if ($opts{I}) {
-    my $dir = $opts{I};
-    if (!-d $dir) {
-        die "Search directory $dir is not found.\n";
+if (defined $Inc) {
+    my $package_path = "";
+    my $package_cpath = "";
+    for my $dir (@$Inc) {
+        if (!-d $dir) {
+            die "Search directory $dir is not found.\n";
+        }
+        $package_path .= File::Spec->catfile($dir, "?.lua;");
+        $package_cpath .= File::Spec->catfile($dir, "?.so;");
     }
     $lua_package_path_config = <<_EOC_;
-    lua_package_path "$dir/?.lua;;";
-    lua_package_cpath "$dir/?.so;;";
+    lua_package_path "$package_path;";
+    lua_package_cpath "$package_cpath;";
 _EOC_
 }
 
 my $luafile;
-if (!defined $opts{e}) {
+if (!defined $src) {
     $luafile = shift
         or die qq{No Lua input file nor -e "" option specified.\n};
 }
 
-if (@ARGV) {
-    die "unknown arguments: @ARGV\n";
-}
+my @args_remain =  @ARGV;
+my $args = get_args(\@args_remain, \@args_all);
 
-my $conns = $opts{c} || 64;
+my $conns = $conns_num || 64;
 
 my @nameservers;
 
@@ -89,11 +108,11 @@ my $conf_dir = File::Spec->catfile($prefix_dir, "conf");
 mkdir $conf_dir or die "failed to mkdir $conf_dir: $!";
 
 my $chunk_name;
-if (defined $opts{e}) {
+if (defined $src) {
     $luafile = File::Spec->catfile($conf_dir, "a.lua");
     open my $out, ">$luafile"
         or die "Cannot open $luafile for writing: $!\n";
-    print $out $opts{e};
+    print $out $src;
     close $out;
     $chunk_name = "=(command line -e)";
 
@@ -104,6 +123,7 @@ if (defined $opts{e}) {
 my $loader = <<_EOC_;
             local gen
             do
+                $args
                 local fname = "$luafile"
                 local f = assert(io.open(fname, "r"))
                 local chunk = f:read("*a")
@@ -286,14 +306,15 @@ if ($pid == 0) {  # child process
 sub usage {
     my $rc = shift;
     my $msg = <<_EOC_;
-resty [-I dir] [-h] [-c num] [-e prog] [-V] [lua-file]
+resty [-I dir] [-h] [-c num] [-e prog] [-V] [lua-file] [args]
 
 Options:
     -c num      set maximal connection count (default: 64).
     -e prog     run the inlined Lua code in "prog".
-    -h          print this help.
     -I dir      Add dir to the search paths for Lua libraries.
     -V          print the underlying nginx version and configurations.
+    --help      print this help.
+    --nginx     specify the nginx path
 
 For bug reporting instructions, please see:
 <http://openresty.org/#Community>
@@ -305,4 +326,33 @@ _EOC_
 
     warn $msg;
     exit($rc);
+}
+
+sub get_args {
+    my($ref_args_remain, $ref_args_all) = @_;
+    my @args_remain = @{$ref_args_remain};
+    my @args_all = @{$ref_args_all};
+
+    my $args = "arg={}; arg[0]=[[$luafile]]; ";
+
+    # args[n] (n > 0)
+    for my $i (0 .. $#args_remain) {
+        my $index = $i + 1;
+        my $arg = $args_remain[$i];
+        $arg =~ s/(['"])/\\$1/g;
+        $args .= "arg[$index]=[[$arg]]; ";
+    }
+
+    # args[n] (n < 0)
+    my $left_num = $#args_all - $#args_remain;
+    for my $j (0 .. $left_num - 2) {
+        my $index = 0 - $left_num + $j + 1;
+        $args .= "arg[$index]=[[$args_all[$j]]]; ";
+    }
+
+    # args[n] (n = the index of resty-cli itself)
+    my $interperter_idx = 0 - $left_num;
+    $args .= "arg[$interperter_idx]=[[$0]]; ";
+
+    return $args;
 }
