@@ -1,7 +1,7 @@
 # vi: ft= et tw=4 sw=4
 
 use lib 't/lib';
-use Test::restyCLI 'no_plan';
+use Test::RestyCLI 'no_plan';
 
 run_tests();
 
@@ -19,7 +19,7 @@ print("arg 3: ", arg[3])
 ^arg 0: /tmp/\S+\.lua
 arg 1: 1
 arg 2: testing
-arg 3: 2 3 4
+arg 3: 2 3 4$
 
 --- err
 
@@ -36,10 +36,10 @@ print("arg 3: ", arg[3])
 
 --- out_like chop
 ^arg -1: ./resty
-^arg 0: /tmp/\S+\.lua
+arg 0: /tmp/\S+\.lua
 arg 1: 1
 arg 2: testing
-arg 3: 2 3 4
+arg 3: 2 3 4$
 
 --- err
 
@@ -58,13 +58,13 @@ print("arg 2: ", arg[2])
 print("arg 3: ", arg[3])
 
 --- out_like chop
-arg -3: ./resty
+^arg -3: ./resty
 arg -2: -I
 arg -1: /tmp
-^arg 0: /tmp/\S+\.lua
+arg 0: /tmp/\S+\.lua
 arg 1: 1
 arg 2: 2
-arg 3: \\"
+arg 3: \"$
 
 --- err
 
@@ -96,7 +96,7 @@ arg 6: ]==]
 arg 7: ]====]
 arg 8: \[===\[
 arg 9: \[\[
-arg 10: \[=\[
+arg 10: \[=\[$
 
 --- err
 
@@ -120,6 +120,6 @@ arg 2: 1]=]3
 arg 3: 4]===]
 arg 4: ]====]5
 arg 5: ]==2!]
-arg 6: \[=\[]=]
+arg 6: \[=\[]=]$
 
 --- err

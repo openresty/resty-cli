@@ -1,7 +1,7 @@
 # Copyright (C) Yichun Zhang (agentzh)
 # Copyright (C) Guanlan Dai
 
-package Test::restyCLI;
+package Test::RestyCLI;
 
 use Test::Base -Base;
 use POSIX ();
@@ -101,7 +101,7 @@ sub run_test ($) {
     my $regex = $block->out_like;
     if (defined $regex) {
         if (!ref $regex) {
-            $regex = qr/$regex/ms;
+            $regex = qr/$regex/s;
         }
         like $out, $regex, "$name - stdout like okay";
     }

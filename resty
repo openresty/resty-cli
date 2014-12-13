@@ -25,8 +25,6 @@ GetOptions("c=i",           \(my $conns_num),
            "V",             \(my $version))
    or die usage(1);
 
-push @$Inc, '.';
-
 if ($help) {
     usage(0);
 }
@@ -72,9 +70,6 @@ if (!defined $src) {
     $luafile = shift
         or die qq{No Lua input file nor -e "" option specified.\n};
 }
-
-my @user_args =  @ARGV;
-my $args = get_args(\@user_args, \@all_args);
 
 my $conns = $conns_num || 64;
 
@@ -122,11 +117,16 @@ if (defined $src) {
     $chunk_name = "\@$luafile";
 }
 
+my $quoted_luafile = quote_as_lua_str($luafile);
+
+my @user_args =  @ARGV;
+my $args = gen_lua_code_for_args(\@user_args, \@all_args);
+
 my $loader = <<_EOC_;
             local gen
             do
                 $args
-                local fname = "$luafile"
+                local fname = $quoted_luafile
                 local f = assert(io.open(fname, "r"))
                 local chunk = f:read("*a")
                 gen = assert(loadstring(chunk, "$chunk_name"))
@@ -330,61 +330,77 @@ _EOC_
     exit($rc);
 }
 
-sub get_args {
-    my($user_args, $all_args) = @_;
-    my $left_bracket = "[=[";
-    my $right_bracket = "]=]";
-    my @bracket_levels;
+sub get_bracket_level {
+    my %bracket_levels;
+    my $bracket_level = 0;
+    my $max_level = 0;
 
     # scan all args and store level of closing brackets
-    for my $arg (@$all_args) {
-        if (my($var) = $arg =~ /\](=*)\]/) {
-            push(@bracket_levels, length($var));
+    for my $arg (@_) {
+        while ($arg =~ /\](=*)\]/g) {
+            my $level = length($1);
+            if ($level > $max_level) {
+                $max_level = $level;
+            }
+            $bracket_levels{$level} = 1;
         }
     }
 
     # if args contain closing bracket
-    if (scalar @bracket_levels > 0) {
-        my $bracket_level = 0;
-
+    if (%bracket_levels) {
         # find the shortest form of the long brackets accordingly
-        for my $i (1 .. max(@bracket_levels)) {
-            if (not $i ~~ @bracket_levels) {
+        for (my $i = 1; $i < $max_level; $i++) {
+            if (!exists $bracket_levels{$i}) {
                 $bracket_level = $i;
                 last;
             }
         }
 
         if ($bracket_level == 0) {
-            $bracket_level = max(@bracket_levels) + 1;
+            $bracket_level = $max_level + 1;
         }
-
-        $left_bracket = "[" ."=" x $bracket_level . "[";
-        $right_bracket = "]" ."=" x $bracket_level . "]";
-        #warn $left_bracket;
+        return $bracket_level;
     }
+    return 1;
+}
 
-    my $args = "arg={}; arg[0]=$left_bracket" . "$luafile" . "$right_bracket; ";
+sub quote_as_lua_str {
+    my ($str) = @_;
+    my $bracket_level = get_bracket_level($str);
+    my $left_bracket = "[" . "=" x $bracket_level . "[";
+    my $right_bracket = "]" . "=" x $bracket_level . "]";
+
+    return $left_bracket . $str . $right_bracket;
+}
+
+sub gen_lua_code_for_args {
+    my ($user_args, $all_args) = @_;
+
+    my $luasrc = "arg = {}\n";
+
+    # args[n] (n = 0)
+    $luasrc .= "arg[0] = $quoted_luafile\n";
 
     # args[n] (n > 0)
     for my $i (0 .. $#user_args) {
         my $index = $i + 1;
-        my $arg = $user_args[$i];
-        $arg =~ s/(['"])/\\$1/g;
-        $args .= "arg[$index]=$left_bracket" . $arg. "$right_bracket; ";
+        my $quoted_arg = quote_as_lua_str($user_args[$i]);
+        $luasrc .= "arg[$index] = $quoted_arg\n";
     }
 
     # args[n] (n < 0)
     my $left_num = $#all_args - $#user_args;
-    for my $j (0 .. $left_num - 2) {
-        my $index = 0 - $left_num + $j + 1;
-        $args .= "arg[$index]=$left_bracket" . $all_args[$j]. "$right_bracket; ";
+    for my $i (0 .. $left_num - 2) {
+        my $index = 0 - $left_num + $i + 1;
+        my $quoted_arg = quote_as_lua_str($all_args[$i]);
+        $luasrc .= "arg[$index] = $quoted_arg\n";
     }
 
     # args[n] (n = the index of resty-cli itself)
-    my $interperter_idx = 0 - $left_num;
-    $args .= "arg[$interperter_idx]=$left_bracket" . $0 . "$right_bracket; ";
+    my $index = 0 - $left_num;
+    my $quoted_arg = quote_as_lua_str($0);
+    $luasrc .= "arg[$index] = $quoted_arg\n";
 
-    #warn $args;
-    return $args;
+    #warn $luasrc;
+    return $luasrc;
 }
