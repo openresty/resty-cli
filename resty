@@ -1,6 +1,7 @@
 #!/usr/bin/env perl
 
 # Copyright (C) Yichun Zhang (agentzh)
+# Copyright (C) Guanlan Dai
 
 # TODO: port this script into the nginx core for greater flexibility
 # and better performance.
@@ -10,52 +11,67 @@ use warnings;
 
 use File::Spec ();
 use FindBin ();
-use Getopt::Std qw( getopts );
+use List::Util qw( max );
+use Getopt::Long qw( GetOptions :config no_ignore_case);
 use File::Temp qw( tempdir );
 use POSIX qw( WNOHANG );
 
-my %opts;
-getopts("he:c:VI:", \%opts)
-    or usage(1);
+my @all_args =  @ARGV;
+GetOptions("c=i",           \(my $conns_num),
+           "e=s",           \(my $src),
+           "h|help",        \(my $help),
+           "I=s@",          \(my $Inc),
+           "nginx=s",       \(my $path),
+           "V",             \(my $version))
+   or die usage(1);
 
-if ($opts{h}) {
+if ($help) {
     usage(0);
 }
 
-my $nginx_path = File::Spec->catfile($FindBin::Bin, "..", "nginx", "sbin", "nginx");
-#warn $nginx_path;
-if (!-f $nginx_path) {
-    $nginx_path = "nginx";  # find in PATH
+my $nginx_path = "";
+
+if (!defined $path) {
+    $nginx_path = File::Spec->catfile($FindBin::Bin, "..", "nginx", "sbin", "nginx");
+    if (!-f $nginx_path) {
+        $nginx_path = "nginx";  # find in PATH
+    }
+
+} else {
+    $nginx_path = $path;
 }
 
-if ($opts{V}) {
+#warn $nginx_path;
+
+if ($version) {
     my $cmd = "$nginx_path -V";
     exec $cmd or die "Failed to run command \"$cmd\": $!\n";
 }
 
 my $lua_package_path_config = '';
-if ($opts{I}) {
-    my $dir = $opts{I};
-    if (!-d $dir) {
-        die "Search directory $dir is not found.\n";
+if (defined $Inc) {
+    my $package_path = "";
+    my $package_cpath = "";
+    for my $dir (@$Inc) {
+        if (!-d $dir) {
+            die "Search directory $dir is not found.\n";
+        }
+        $package_path .= File::Spec->catfile($dir, "?.lua;");
+        $package_cpath .= File::Spec->catfile($dir, "?.so;");
     }
     $lua_package_path_config = <<_EOC_;
-    lua_package_path "$dir/?.lua;;";
-    lua_package_cpath "$dir/?.so;;";
+    lua_package_path "$package_path;";
+    lua_package_cpath "$package_cpath;";
 _EOC_
 }
 
 my $luafile;
-if (!defined $opts{e}) {
+if (!defined $src) {
     $luafile = shift
         or die qq{No Lua input file nor -e "" option specified.\n};
 }
 
-if (@ARGV) {
-    die "unknown arguments: @ARGV\n";
-}
-
-my $conns = $opts{c} || 64;
+my $conns = $conns_num || 64;
 
 my @nameservers;
 
@@ -89,11 +105,11 @@ my $conf_dir = File::Spec->catfile($prefix_dir, "conf");
 mkdir $conf_dir or die "failed to mkdir $conf_dir: $!";
 
 my $chunk_name;
-if (defined $opts{e}) {
+if (defined $src) {
     $luafile = File::Spec->catfile($conf_dir, "a.lua");
     open my $out, ">$luafile"
         or die "Cannot open $luafile for writing: $!\n";
-    print $out $opts{e};
+    print $out $src;
     close $out;
     $chunk_name = "=(command line -e)";
 
@@ -101,10 +117,16 @@ if (defined $opts{e}) {
     $chunk_name = "\@$luafile";
 }
 
+my $quoted_luafile = quote_as_lua_str($luafile);
+
+my @user_args =  @ARGV;
+my $args = gen_lua_code_for_args(\@user_args, \@all_args);
+
 my $loader = <<_EOC_;
             local gen
             do
-                local fname = "$luafile"
+                $args
+                local fname = $quoted_luafile
                 local f = assert(io.open(fname, "r"))
                 local chunk = f:read("*a")
                 gen = assert(loadstring(chunk, "$chunk_name"))
@@ -286,14 +308,15 @@ if ($pid == 0) {  # child process
 sub usage {
     my $rc = shift;
     my $msg = <<_EOC_;
-resty [-I dir] [-h] [-c num] [-e prog] [-V] [lua-file]
+resty [-I dir] [-h] [-c num] [-e prog] [-V] [lua-file [args]]
 
 Options:
     -c num      set maximal connection count (default: 64).
     -e prog     run the inlined Lua code in "prog".
-    -h          print this help.
     -I dir      Add dir to the search paths for Lua libraries.
     -V          print the underlying nginx version and configurations.
+    --help      print this help.
+    --nginx     specify the nginx path (this option might be removed in the future).
 
 For bug reporting instructions, please see:
 <http://openresty.org/#Community>
@@ -305,4 +328,79 @@ _EOC_
 
     warn $msg;
     exit($rc);
+}
+
+sub get_bracket_level {
+    my %bracket_levels;
+    my $bracket_level = 0;
+    my $max_level = 0;
+
+    # scan all args and store level of closing brackets
+    for my $arg (@_) {
+        while ($arg =~ /\](=*)\]/g) {
+            my $level = length($1);
+            if ($level > $max_level) {
+                $max_level = $level;
+            }
+            $bracket_levels{$level} = 1;
+        }
+    }
+
+    # if args contain closing bracket
+    if (%bracket_levels) {
+        # find the shortest form of the long brackets accordingly
+        for (my $i = 1; $i < $max_level; $i++) {
+            if (!exists $bracket_levels{$i}) {
+                $bracket_level = $i;
+                last;
+            }
+        }
+
+        if ($bracket_level == 0) {
+            $bracket_level = $max_level + 1;
+        }
+        return $bracket_level;
+    }
+    return 1;
+}
+
+sub quote_as_lua_str {
+    my ($str) = @_;
+    my $bracket_level = get_bracket_level($str);
+    my $left_bracket = "[" . "=" x $bracket_level . "[";
+    my $right_bracket = "]" . "=" x $bracket_level . "]";
+
+    return $left_bracket . $str . $right_bracket;
+}
+
+sub gen_lua_code_for_args {
+    my ($user_args, $all_args) = @_;
+
+    my $luasrc = "arg = {}\n";
+
+    # args[n] (n = 0)
+    $luasrc .= "arg[0] = $quoted_luafile\n";
+
+    # args[n] (n > 0)
+    for my $i (0 .. $#user_args) {
+        my $index = $i + 1;
+        my $quoted_arg = quote_as_lua_str($user_args[$i]);
+        $luasrc .= "arg[$index] = $quoted_arg\n";
+    }
+
+    # args[n] (n < 0)
+    my $left_num = $#all_args - $#user_args;
+    for my $i (0 .. $left_num - 2) {
+        my $index = 0 - $left_num + $i + 1;
+        my $quoted_arg = quote_as_lua_str($all_args[$i]);
+        $luasrc .= "arg[$index] = $quoted_arg\n";
+    }
+
+    # args[n] (n = the index of resty-cli itself)
+    my $index = 0 - $left_num;
+    my $quoted_arg = quote_as_lua_str($0);
+    $luasrc .= "arg[$index] = $quoted_arg\n";
+
+    #warn $luasrc;
+    return $luasrc;
 }
