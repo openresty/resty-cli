@@ -21,7 +21,7 @@ GetOptions("c=i",           \(my $conns_num),
            "e=s",           \(my $src),
            "h|help",        \(my $help),
            "I=s@",          \(my $Inc),
-           "nginx=s",       \(my $path),
+           "nginx=s",       \(my $nginx_path),
            "V",             \(my $version))
    or die usage(1);
 
@@ -29,16 +29,11 @@ if ($help) {
     usage(0);
 }
 
-my $nginx_path = "";
-
-if (!defined $path) {
+if (!$nginx_path) {
     $nginx_path = File::Spec->catfile($FindBin::Bin, "..", "nginx", "sbin", "nginx");
     if (!-f $nginx_path) {
         $nginx_path = "nginx";  # find in PATH
     }
-
-} else {
-    $nginx_path = $path;
 }
 
 #warn $nginx_path;
