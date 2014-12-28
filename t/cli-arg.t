@@ -9,7 +9,7 @@ run_tests();
 
 __DATA__
 
-=== TEST 1: sanity 1
+=== TEST 1: simplest
 --- args: 1 testing "2 3 4"
 --- src
 print("arg 0: ", arg[0])
@@ -27,7 +27,7 @@ arg 3: 2 3 4$
 
 
 
-=== TEST 2: sanity 2
+=== TEST 2: minus indexes
 --- args: 1 testing "2 3 4"
 --- src
 print("arg -1: ", arg[-1])
@@ -47,7 +47,7 @@ arg 3: 2 3 4$
 
 
 
-=== TEST 3: sanity 3 (with quote and options)
+=== TEST 3: with quote and options
 --- opts: -I /tmp
 --- args: 1 2 \"
 --- src
@@ -72,7 +72,7 @@ arg 3: \"$
 
 
 
-=== TEST 4: sanity 4 (with long brackets)
+=== TEST 4: with long brackets
 --- args: 1 ] ]] ]]] ]=] ]==] ]====] [===[ [[ [=[
 --- src
 print("arg 0: ", arg[0])
@@ -104,7 +104,7 @@ arg 10: \[=\[$
 
 
 
-=== TEST 5: sanity 5 (with complex long brackets)
+=== TEST 5: with complex long brackets
 --- args: 1]] 1]=]3 4]===] ]====]5 ]==2!] [=[]=]
 --- src
 print("arg 0: ", arg[0])
