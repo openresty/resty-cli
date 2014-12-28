@@ -9,6 +9,8 @@ use IPC::Run ();
 
 our @EXPORT = qw( run_tests );
 
+our $UseValgrind = $ENV{TEST_RESTY_USE_VALGRIND};
+
 sub run_tests () {
     for my $block (Test::Base::blocks()) {
         run_test($block);
@@ -48,6 +50,23 @@ sub run_test ($) {
     my $args = $block->args;
 
     my $cmd = "./resty";
+
+    if ($UseValgrind) {
+        my $val_opts = " --num-callers=100 -q --gen-suppressions=all";
+
+        my $sup_file = 'valgrind.suppress';
+        if (-f $sup_file) {
+            $val_opts .= " --suppressions=$sup_file";
+        }
+
+        my $extra_opts = "--valgrind '--valgrind-opts=$val_opts'";
+        if (!defined $opts) {
+            $opts = $extra_opts;
+
+        } else {
+            $opts .= " $extra_opts";
+        }
+    }
 
     if (defined $opts) {
         $cmd .= " $opts";
