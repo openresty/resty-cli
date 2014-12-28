@@ -1,13 +1,13 @@
 # Copyright (C) Yichun Zhang (agentzh)
 # Copyright (C) Guanlan Dai
 
-package Test::RestyCLI;
+package Test::Resty;
 
 use Test::Base -Base;
 use POSIX ();
 use IPC::Run ();
 
-our @EXPORT = qw( run_tests );
+our @EXPORT = qw( run_tests blocks plan );
 
 our $UseValgrind = $ENV{TEST_RESTY_USE_VALGRIND};
 
@@ -66,6 +66,8 @@ sub run_test ($) {
         } else {
             $opts .= " $extra_opts";
         }
+
+        warn "$name\n";
     }
 
     if (defined $opts) {

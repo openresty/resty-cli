@@ -1,7 +1,9 @@
-# vi: ft= et tw=4 sw=4
+# vi:ft= et ts=4 sw=4
 
 use lib 't/lib';
-use Test::RestyCLI 'no_plan';
+use Test::Resty;
+
+plan tests => blocks() * 3;
 
 run_tests();
 
