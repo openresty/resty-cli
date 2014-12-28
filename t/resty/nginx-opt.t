@@ -19,6 +19,6 @@ print("arg 3: ", arg[3])
 
 --- out
 --- err_like chop
-Can't exec "/tmp/no/such/file": No such file or directory
+(?:Can't exec|valgrind:) "?/tmp/no/such/file"?: No such file or directory
 --- ret: 2
 

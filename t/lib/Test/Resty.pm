@@ -142,6 +142,9 @@ sub run_test ($) {
     my $exp_ret = $block->ret;
     if (!defined $exp_ret) {
         $exp_ret = 0;
+
+    } elsif ($UseValgrind) {
+        $ret &= 0x3;
     }
     is $ret, $exp_ret, "$name - exit code okay";
 }
