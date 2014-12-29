@@ -106,6 +106,11 @@ where the first "hiya" line was entered from the keyboard.
     user 0m0.053s
     sys 0m0.015s
 
+User command-line arguments are also passed:
+
+    $ resty -e 'print(arg[1], ", ", arg[2])' hello world
+    hello, world
+
 To check version numbers:
 
     $ resty -V
@@ -120,6 +125,10 @@ Installation
 
 The `resty` command-line utility is bundled in OpenResty 1.7.7.2+ and is
 installed under `<openresty-prefix>/bin/` by default.
+If the OpenResty prefix is the default value (`/usr/local/openresty`),
+then you can just add `/usr/local/openresty/bin` to your PATH environment:
+
+    export PATH=/usr/local/openresty/bin:$PATH
 
 [Back to TOC](#table-of-contents)
 
