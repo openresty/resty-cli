@@ -146,8 +146,8 @@ Copyright and License
 
 This module is licensed under the BSD license.
 
-Copyright (C) 2014, by Yichun "agentzh" Zhang (章亦春) <agentzh@gmail.com>, CloudFlare Inc.
-Copyright (C) 2014, by Guanlan Dai <guanlan@cloudflare.com>, CloudFlare Inc.
+Copyright (C) 2014-2015, by Yichun "agentzh" Zhang (章亦春) <agentzh@gmail.com>, CloudFlare Inc.
+Copyright (C) 2014-2015, by Guanlan Dai <guanlan@cloudflare.com>, CloudFlare Inc.
 
 All rights reserved.
 
