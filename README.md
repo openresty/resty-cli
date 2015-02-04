@@ -123,8 +123,8 @@ To check version numbers:
 Installation
 ============
 
-The `resty` command-line utility is bundled in OpenResty 1.7.7.2+ and is
-installed under `<openresty-prefix>/bin/` by default.
+The `resty` command-line utility is bundled and enabled in OpenResty 1.7.7.2+ by
+default and is installed under `<openresty-prefix>/bin/` by default.
 If the OpenResty prefix is the default value (`/usr/local/openresty`),
 then you can just add `/usr/local/openresty/bin` to your PATH environment:
 
