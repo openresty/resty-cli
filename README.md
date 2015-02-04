@@ -18,7 +18,7 @@ Description
 
 The `resty` command-line utility can be used to run OpenResty's Lua scripts directly off the command-line just like the `lua` or `luajit` command-line utilities. It can be used to create various command-line utilities using OpenResty Lua.
 
-This tool works by creating a head-less `nginx` insance,
+This tool works by creating a head-less `nginx` instance,
 disabling [daemon](http://nginx.org/en/docs/ngx_core_module.html#daemon), [master_process](http://nginx.org/en/docs/ngx_core_module.html#master_process), [access_log](http://nginx.org/en/docs/http/ngx_http_log_module.html#access_log), and other things it does
 not need. No `server {}` is configured hence *no* listening sockets
 are involved at all.
@@ -89,7 +89,7 @@ Stdin also works (in addition to stdout and stderr):
 
 where the first "hiya" line was entered from the keyboard.
 
-"Light theads" also work:
+"Light threads" also work:
 
     $ time resty -e 'local ths = {}
                      for i = 1, 3 do
