@@ -122,7 +122,7 @@ sub run_test ($) {
     my $regex = $block->out_like;
     if (defined $regex) {
         if (!ref $regex) {
-            $regex = qr/$regex/s;
+            $regex = qr/$regex/ms;
         }
         like $out, $regex, "$name - stdout like okay";
     }
