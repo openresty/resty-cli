@@ -10,6 +10,7 @@ Table of Contents
 * [Description](#description)
 * [Synopsis](#synopsis)
 * [Installation](#installation)
+* [Test Suite](#test-suite)
 * [Authors](#authors)
 * [Copyright and License](#copyright-and-license)
 
@@ -129,6 +130,46 @@ If the OpenResty prefix is the default value (`/usr/local/openresty`),
 then you can just add `/usr/local/openresty/bin` to your PATH environment:
 
     export PATH=/usr/local/openresty/bin:$PATH
+
+[Back to TOC](#table-of-contents)
+
+Test Suite
+==========
+
+This project comes with a test suite powered by Perl's testing toolchain.
+
+To run the test suite on your side, first install some of the CPAN modules required by the test
+scaffold:
+
+```bash
+sudo cpan Test::Base IPC::Run
+```
+
+Also, you need to make your nginx executable visible in your PATH environment:
+
+```bash
+export PATH=/path/to/your/nginx/sbin:$PATH
+```
+
+Then you can run the tests with the `prove` command provided by Perl:
+
+```bash
+prove -r t
+```
+
+To run an individual test file, just specify the test file on the command-line, for instance,
+
+```bash
+prove t/resty/user-args.t
+```
+
+To run an individual test case in a test file, just (temporarily) add the line
+
+```
+--- ONLY
+```
+
+to the end of that test block, then run that particular test file as mentioned above.
 
 [Back to TOC](#table-of-contents)
 
