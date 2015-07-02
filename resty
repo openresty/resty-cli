@@ -18,7 +18,7 @@ use Getopt::Long qw( GetOptions :config no_ignore_case);
 use File::Temp qw( tempdir );
 use POSIX qw( WNOHANG );
 
-my @all_args =  @ARGV;
+my @all_args = @ARGV;
 GetOptions("c=i",           \(my $conns_num),
            "e=s",           \(my $src),
            "h|help",        \(my $help),
