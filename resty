@@ -153,8 +153,8 @@ pid logs/nginx.pid;
 
 $env_list
 
-error_log /dev/stderr warn;
-#error_log /dev/stderr debug;
+error_log stderr warn;
+#error_log stderr debug;
 
 events {
     worker_connections $conns;
