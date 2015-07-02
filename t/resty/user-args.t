@@ -125,3 +125,39 @@ arg 5: ]==2!]
 arg 6: \[=\[]=]$
 
 --- err
+
+
+
+=== TEST 6: user options
+--- args: --help
+--- src
+print("arg 0: ", arg[0])
+print("arg 1: ", arg[1])
+print("arg 2: ", arg[2])
+print("arg 3: ", arg[3])
+
+--- out_like chop
+^arg 0: .*?/tmp/\S+?\.lua
+arg 1: --help
+arg 2: 
+arg 3: 
+
+--- err
+
+
+
+=== TEST 7: user options (--)
+--- args: -- --help
+--- src
+print("arg 0: ", arg[0])
+print("arg 1: ", arg[1])
+print("arg 2: ", arg[2])
+print("arg 3: ", arg[3])
+
+--- out_like chop
+^arg 0: .*?/tmp/\S+?\.lua
+arg 1: --
+arg 2: --help
+arg 3: 
+
+--- err

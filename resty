@@ -14,7 +14,7 @@ our $VERSION = 0.02;
 use File::Spec ();
 use FindBin ();
 use List::Util qw( max );
-use Getopt::Long qw( GetOptions :config no_ignore_case);
+use Getopt::Long qw( GetOptions :config no_ignore_case require_order);
 use File::Temp qw( tempdir );
 use POSIX qw( WNOHANG );
 
