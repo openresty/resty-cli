@@ -38,7 +38,10 @@ if ($help) {
 if (!$nginx_path) {
     $nginx_path = File::Spec->catfile($FindBin::Bin, "..", "nginx", "sbin", "nginx");
     if (!-f $nginx_path) {
-        $nginx_path = "nginx";  # find in PATH
+        $nginx_path = File::Spec->catfile($FindBin::Bin, "nginx");
+        if (!-f $nginx_path) {
+            $nginx_path = "nginx";  # find in PATH
+        }
     }
 }
 
