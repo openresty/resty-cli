@@ -97,7 +97,18 @@ if (!@nameservers) {
 
 #warn "@nameservers\n";
 
-my $prefix_dir = tempdir(CLEANUP => 1);
+my $prefix_dir;
+if ($^O eq 'msys') {
+    # to work around a bug in msys perl (at least 5.8.8 msys 64int)
+    $prefix_dir = "resty_cli_temp";
+    if (-d $prefix_dir) {
+        system("rm -rf $prefix_dir") == 0 or die $!;
+    }
+    mkdir $prefix_dir or die "failed to mkdir $prefix_dir: $!";
+
+} else {
+    $prefix_dir = tempdir(CLEANUP => 1);
+}
 #warn "prefix dir: $prefix_dir\n";
 
 my $logs_dir = File::Spec->catfile($prefix_dir, "logs");
