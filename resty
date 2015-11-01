@@ -36,9 +36,18 @@ if ($help) {
 }
 
 if (!$nginx_path) {
-    $nginx_path = File::Spec->catfile($FindBin::Bin, "..", "nginx", "sbin", "nginx");
+    use Config;
+    my $ext = $Config{_exe};
+    if (!$ext) {
+        if ($^O eq 'msys') {
+            $ext = '.exe';
+        } else {
+            $ext = '';
+        }
+    }
+    $nginx_path = File::Spec->catfile($FindBin::Bin, "..", "nginx", "sbin", "nginx$ext");
     if (!-f $nginx_path) {
-        $nginx_path = File::Spec->catfile($FindBin::Bin, "nginx");
+        $nginx_path = File::Spec->catfile($FindBin::Bin, "nginx$ext");
         if (!-f $nginx_path) {
             $nginx_path = "nginx";  # find in PATH
         }
