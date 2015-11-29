@@ -120,6 +120,10 @@ if ($^O eq 'msys') {
 
 } else {
     $prefix_dir = tempdir(CLEANUP => 1);
+    if ($^O eq 'MSWin32') {
+        require Win32;
+        $prefix_dir = Win32::GetLongPathName($prefix_dir);
+    }
 }
 #warn "prefix dir: $prefix_dir\n";
 
@@ -327,7 +331,8 @@ if (!defined $pid) {
 
 if ($pid == 0) {  # child process
     #warn "exec $cmd...";
-    exec $cmd or die "Failed to run command \"$cmd\": $!\n";
+    exec($nginx_path, "-p", "$prefix_dir/", "-c", "conf/nginx.conf")
+        or die "Failed to run command \"$cmd\": $!\n";
 
 } else {
     $child_pid = $pid;
