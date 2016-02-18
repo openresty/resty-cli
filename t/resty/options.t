@@ -40,15 +40,16 @@ nginx version: /s
 resty [options] [lua-file [args]]
 
 Options:
-    -c num      set maximal connection count (default: 64).
-    -e prog     run the inlined Lua code in "prog".
-    --help      print this help.
-    -I dir      Add dir to the search paths for Lua libraries.
-    --nginx     specify the nginx path (this option might be removed in the future).
-    -V          print version numbers and nginx configurations.
-    --valgrind  use valgrind to run the underyling nginx
-
-    --valgrind-opts     pass extra options to valgrind
+    -c num              Set maximal connection count (default: 64).
+    -e prog             Run the inlined Lua code in "prog".
+    --help              Print this help.
+    --http-include path Include the specified file in the nginx http configuration block
+    -I dir              Add dir to the search paths for Lua libraries.
+    --main-include path Include the specified file in the nginx main configuration block
+    --nginx             Specify the nginx path (this option might be removed in the future).
+    -V                  Print version numbers and nginx configurations.
+    --valgrind          Use valgrind to run nginx
+    --valgrind-opts     Pass extra options to valgrind
 
 For bug reporting instructions, please see:
 <http://openresty.org/#Community>
