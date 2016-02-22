@@ -18,17 +18,34 @@ use Getopt::Long qw( GetOptions :config no_ignore_case require_order);
 use File::Temp qw( tempdir );
 use POSIX qw( WNOHANG );
 
+sub resolve_includes {
+    my $type = shift;
+    my @paths = map {
+        my $abs_path = File::Spec->rel2abs($_);
+        unless (-f $abs_path) {
+          die "Could not find $type include '$abs_path'";
+        }
+        "include $abs_path;";
+    } @_;
+    return join("\n", @paths);
+}
+
 my @all_args = @ARGV;
-GetOptions("c=i",           \(my $conns_num),
-           "e=s",           \(my $src),
-           "h|help",        \(my $help),
-           "I=s@",          \(my $Inc),
-           "nginx=s",       \(my $nginx_path),
-           "valgrind",      \(my $use_valgrind),
+my @http_includes = ();
+my @main_includes = ();
+
+GetOptions("c=i",             \(my $conns_num),
+           "e=s",             \(my $src),
+           "h|help",          \(my $help),
+           "http-include=s",  \@http_includes,
+           "I=s@",            \(my $Inc),
+           "main-include=s",  \@main_includes,
+           "nginx=s",         \(my $nginx_path),
+           "valgrind",        \(my $use_valgrind),
 
            "valgrind-opts=s", \(my $valgrind_opts),
 
-           "V",             \(my $version))
+           "V",               \(my $version))
    or die usage(1);
 
 if ($help) {
@@ -168,6 +185,9 @@ for my $var (sort keys %ENV) {
     $env_list .= "env $var;\n";
 }
 
+my $main_include_directives = resolve_includes('main', @main_includes);
+my $http_include_directives = resolve_includes('http', @http_includes);
+
 my $conf_file = File::Spec->catfile($conf_dir, "nginx.conf");
 open my $out, ">$conf_file"
     or die "Cannot open $conf_file for writing: $!\n";
@@ -187,11 +207,14 @@ events {
     worker_connections $conns;
 }
 
+$main_include_directives
+
 http {
     access_log off;
     lua_socket_log_errors off;
     resolver @nameservers;
 $lua_package_path_config
+    $http_include_directives
     init_by_lua '
         local stdout = io.stdout
         local ngx_null = ngx.null
@@ -350,15 +373,16 @@ sub usage {
 resty [options] [lua-file [args]]
 
 Options:
-    -c num      set maximal connection count (default: 64).
-    -e prog     run the inlined Lua code in "prog".
-    --help      print this help.
-    -I dir      Add dir to the search paths for Lua libraries.
-    --nginx     specify the nginx path (this option might be removed in the future).
-    -V          print version numbers and nginx configurations.
-    --valgrind  use valgrind to run the underyling nginx
-
-    --valgrind-opts     pass extra options to valgrind
+    -c num              Set maximal connection count (default: 64).
+    -e prog             Run the inlined Lua code in "prog".
+    --help              Print this help.
+    --http-include path Include the specified file in the nginx http configuration block
+    -I dir              Add dir to the search paths for Lua libraries.
+    --main-include path Include the specified file in the nginx main configuration block
+    --nginx             Specify the nginx path (this option might be removed in the future).
+    -V                  Print version numbers and nginx configurations.
+    --valgrind          Use valgrind to run nginx
+    --valgrind-opts     Pass extra options to valgrind
 
 For bug reporting instructions, please see:
 <http://openresty.org/#Community>
