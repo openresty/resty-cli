@@ -56,3 +56,22 @@ For bug reporting instructions, please see:
 --- err
 --- ret: 0
 
+
+
+=== TEST 4: bad --http-include value
+--- opts: --http-include=/tmp/no/such/file
+--- src
+--- out
+--- err_like chop
+Could not find http include '/tmp/no/such/file'
+--- ret: 2
+
+
+
+=== TEST 5: bad --main-include value
+--- opts: --main-include=/tmp/no/such/file
+--- src
+--- out
+--- err_like chop
+Could not find main include '/tmp/no/such/file'
+--- ret: 2

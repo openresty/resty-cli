@@ -18,13 +18,28 @@ use Getopt::Long qw( GetOptions :config no_ignore_case require_order);
 use File::Temp qw( tempdir );
 use POSIX qw( WNOHANG );
 
+sub resolve_includes {
+    my $type = shift;
+    my @paths = map {
+        my $abs_path = File::Spec->rel2abs($_);
+        unless (-f $abs_path) {
+          die "Could not find $type include '$abs_path'";
+        }
+        "include $abs_path;";
+    } @_;
+    return join("\n", @paths);
+}
+
 my @all_args = @ARGV;
+my @http_includes = ();
+my @main_includes = ();
+
 GetOptions("c=i",             \(my $conns_num),
            "e=s",             \(my $src),
            "h|help",          \(my $help),
-           "http-include=s",  \(my $http_include),
+           "http-include=s",  \@http_includes,
            "I=s@",            \(my $Inc),
-           "main-include=s",  \(my $main_include),
+           "main-include=s",  \@main_includes,
            "nginx=s",         \(my $nginx_path),
            "valgrind",        \(my $use_valgrind),
 
@@ -170,16 +185,8 @@ for my $var (sort keys %ENV) {
     $env_list .= "env $var;\n";
 }
 
-my $main_include_directive = '';
-my $http_include_directive = '';
-
-if ($main_include) {
-    $main_include_directive = "include $main_include;"
-}
-
-if ($http_include) {
-    $http_include_directive = "include $http_include;"
-}
+my $main_include_directives = resolve_includes('main', @main_includes);
+my $http_include_directives = resolve_includes('http', @http_includes);
 
 my $conf_file = File::Spec->catfile($conf_dir, "nginx.conf");
 open my $out, ">$conf_file"
@@ -200,14 +207,14 @@ events {
     worker_connections $conns;
 }
 
-$main_include_directive
+$main_include_directives
 
 http {
     access_log off;
     lua_socket_log_errors off;
     resolver @nameservers;
 $lua_package_path_config
-    $http_include_directive
+    $http_include_directives
     init_by_lua '
         local stdout = io.stdout
         local ngx_null = ngx.null
