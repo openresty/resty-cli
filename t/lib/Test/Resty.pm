@@ -11,6 +11,8 @@ our @EXPORT = qw( run_tests blocks plan );
 
 our $UseValgrind = $ENV{TEST_RESTY_USE_VALGRIND};
 
+sub write_user_files ($);
+
 sub run_tests () {
     for my $block (Test::Base::blocks()) {
         run_test($block);
@@ -92,6 +94,8 @@ sub run_test ($) {
 
     my @cmd = parse_cmd($cmd);
 
+    write_user_files($block);
+
     my ($out, $err);
 
     eval {
@@ -147,6 +151,91 @@ sub run_test ($) {
         $ret &= 0x3;
     }
     is $ret, $exp_ret, "$name - exit code okay";
+}
+
+sub write_user_files ($) {
+    my $block = shift;
+
+    my $tmpdir = "./t/tmp";
+    if (!-d $tmpdir) {
+        mkdir $tmpdir or die "cannot mkdir $tmpdir: $!\n";
+    }
+
+    my $name = $block->name;
+
+    my $files = $block->user_files;
+    if ($files) {
+        if (!ref $files) {
+            my $raw = $files;
+
+            open my $in, '<', \$raw;
+
+            $files = [];
+            my ($fname, $body, $date);
+            while (<$in>) {
+                if (/>>> (\S+)(?:\s+(.+))?/) {
+                    if ($fname) {
+                        push @$files, [$fname, $body, $date];
+                    }
+
+                    $fname = $1;
+                    $date = $2;
+                    undef $body;
+                } else {
+                    $body .= $_;
+                }
+            }
+
+            if ($fname) {
+                push @$files, [$fname, $body, $date];
+            }
+
+        } elsif (ref $files ne 'ARRAY') {
+            bail_out "$name - wrong value type: ", ref $files,
+                     ", only scalar or ARRAY are accepted";
+        }
+
+        for my $file (@$files) {
+            my ($fname, $body, $date) = @$file;
+            #warn "write file $fname with content [$body]\n";
+
+            if (!defined $body) {
+                $body = '';
+            }
+
+            my $path;
+            if ($fname !~ m{^/}) {
+                $path = "$tmpdir/$fname";
+
+            } else {
+                $path = $fname;
+            }
+
+            if ($path =~ /(.*)\//) {
+                my $dir = $1;
+                if (! -d $dir) {
+                    make_path($dir) or bail_out "$name - Cannot create directory ", $dir;
+                }
+            }
+
+            if (-f $path) {
+                unlink $path or die "$name - Cannot remove file $path: $!\n";
+            }
+
+            open my $out, ">$path" or
+                bail_out "$name - Cannot open $path for writing: $!\n";
+            binmode $out;
+            #warn "write file $path with data len ", length $body;
+            print $out $body;
+            close $out;
+
+            if ($date) {
+                my $cmd = "TZ=GMT touch -t '$date' $path";
+                system($cmd) == 0 or
+                    bail_out "Failed to run shell command: $cmd\n";
+            }
+        }
+    }
 }
 
 1;

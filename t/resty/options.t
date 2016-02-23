@@ -40,18 +40,145 @@ nginx version: /s
 resty [options] [lua-file [args]]
 
 Options:
-    -c num      set maximal connection count (default: 64).
-    -e prog     run the inlined Lua code in "prog".
-    --help      print this help.
-    -I dir      Add dir to the search paths for Lua libraries.
-    --nginx     specify the nginx path (this option might be removed in the future).
-    -V          print version numbers and nginx configurations.
-    --valgrind  use valgrind to run the underyling nginx
+    -c num              Set maximal connection count (default: 64).
+    -e prog             Run the inlined Lua code in "prog".
+    --help              Print this help.
 
-    --valgrind-opts     pass extra options to valgrind
+    --http-include path Include the specified file in the nginx http configuration block
+                        (multiple instances are supported).
+
+    -I dir              Add dir to the search paths for Lua libraries.
+
+    --main-include path Include the specified file in the nginx main configuration block
+                        (multiple instances are supported).
+
+    --nginx             Specify the nginx path (this option might be removed in the future).
+    -V                  Print version numbers and nginx configurations.
+    --valgrind          Use valgrind to run nginx
+    --valgrind-opts     Pass extra options to valgrind
 
 For bug reporting instructions, please see:
 <http://openresty.org/#Community>
 --- err
 --- ret: 0
 
+
+
+=== TEST 4: bad --http-include value
+--- opts: --http-include=/tmp/no/such/file
+--- src
+--- out
+--- err_like chop
+Could not find http include '/tmp/no/such/file'
+--- ret: 2
+
+
+
+=== TEST 5: bad --main-include value
+--- opts: --main-include=/tmp/no/such/file
+--- src
+--- out
+--- err_like chop
+Could not find main include '/tmp/no/such/file'
+--- ret: 2
+
+
+
+=== TEST 6: bad --main-include file content
+--- opts: --main-include=/tmp/a.conf
+--- user_files
+>>> /tmp/a.conf
+lua_shared_dict dogs 1m;
+--- src
+local dogs = ngx.shared.dogs
+dogs:set("Tom", 32)
+print(dogs:get("Tom"))
+--- out
+--- err
+nginx: [emerg] "lua_shared_dict" directive is not allowed here in /tmp/a.conf:1
+--- ret: 1
+
+
+
+=== TEST 7: good --http-include file content
+--- opts: --http-include=/tmp/a.conf
+--- user_files
+>>> /tmp/a.conf
+lua_shared_dict dogs 1m;
+--- src
+local dogs = ngx.shared.dogs
+dogs:set("Tom", 32)
+print(dogs:get("Tom"))
+--- out
+32
+--- err
+
+
+
+=== TEST 8: multiple --http-include options
+--- opts: --http-include=/tmp/a.conf --http-include=/tmp/b.conf
+--- user_files
+>>> /tmp/a.conf
+lua_shared_dict dogs 1m;
+>>> /tmp/b.conf
+lua_shared_dict cats 1m;
+--- src
+local dogs = ngx.shared.dogs
+local cats = ngx.shared.cats
+dogs:set("Tom", 32)
+cats:set("Tom", 12)
+print("dog: ", dogs:get("Tom"))
+print("cat: ", cats:get("Tom"))
+--- out
+dog: 32
+cat: 12
+--- err
+
+
+
+=== TEST 9: multiple --main-include options
+--- opts: --main-include=/tmp/a.conf --main-include=/tmp/b.conf
+--- user_files
+>>> /tmp/a.conf
+env foo=32;
+>>> /tmp/b.conf
+env bar=56;
+--- src
+print("foo: ", os.getenv("foo"))
+print("bar: ", os.getenv("bar"))
+--- out
+foo: 32
+bar: 56
+--- err
+
+
+
+=== TEST 10: good --http-include file content (relative path)
+--- opts: --http-include=t/tmp/a.conf
+--- user_files
+>>> a.conf
+lua_shared_dict dogs 1m;
+--- src
+local dogs = ngx.shared.dogs
+dogs:set("Tom", 32)
+print(dogs:get("Tom"))
+--- out
+32
+--- err
+
+
+
+=== TEST 11: good --main-include option value (relative path)
+--- opts: --main-include=/tmp/a.conf --main-include=/tmp/b.conf
+--- user_files
+>>> /tmp/a.conf
+env foo=32;
+>>> /tmp/b.conf
+env bar=56;
+--- src
+print("foo: ", os.getenv("foo"))
+print("bar: ", os.getenv("bar"))
+--- out
+foo: 32
+bar: 56
+--- err
