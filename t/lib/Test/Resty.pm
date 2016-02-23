@@ -4,7 +4,7 @@
 package Test::Resty;
 
 use Test::Base -Base;
-use POSIX ();
+use File::Temp qw( tempfile );
 use IPC::Run ();
 
 our @EXPORT = qw( run_tests blocks plan );
@@ -78,9 +78,10 @@ sub run_test ($) {
 
     my $luafile;
     if (defined $block->src) {
-        $luafile = POSIX::tmpnam() . ".lua";
-        open my $out, ">$luafile" or
-            bail_out("cannot open $luafile for writing: $!");
+        my ($out, $luafile) = tempfile("testXXXXXX",
+                                        SUFFIX => '.lua',
+                                        TMPDIR => 1,
+                                        UNLINK => 1);
         print $out ($block->src);
         close $out;
         $cmd .= " $luafile"
