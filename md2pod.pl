@@ -360,6 +360,9 @@ sub process_file {
                 }
 
                 my $level = length $1;
+                if ($level > 4) {
+                    $level = 4;  # POD only supports 4 levels.
+                }
                 $out .= "\n=head$level ";
                 $out .= process_remaining_line($_);
                 $out =~ s/ \s* \#+ \s* $//xg;
