@@ -28,7 +28,7 @@ my $outfile = $opts{o};
 if (defined $outfile) {
     open my $out, ">:encoding(UTF-8)", $outfile
         or die "cannot open $outfile for writing: $!\n";
-    print $out, $pod;
+    print $out $pod;
     close $out;
 
 } else {
