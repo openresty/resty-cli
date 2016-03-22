@@ -44,10 +44,6 @@ sub process_file {
     local $_ = do { local $/; <$in> };
     close $in;
 
-    #$md_src =~ s/ ^ .*? (\S .*) \n [^\n\S]*? =+ [^\n\S]* $/# $1\n/gxm;
-    #$md_src =~ s/ ^ .*? (\S .*) \n [^\n\S]*? -+ [^\n\S]* $/## $1\n/gxm;
-    #$md_src =~ s/ <!-- .*? --> //gxsm;
-
     my $out = "=encoding utf-8\n\n";
     my ($in_code, %ind2level, %level2ind, $list_level, $cur_list_indent, %list_idx);
     my $just_seen_newline;
