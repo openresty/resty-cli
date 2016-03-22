@@ -51,7 +51,7 @@ sub run_test ($) {
     my $opts = $block->opts;
     my $args = $block->args;
 
-    my $cmd = "./resty";
+    my $cmd = "./bin/resty";
 
     if ($UseValgrind) {
         my $val_opts = " --num-callers=100 -q --gen-suppressions=all";
