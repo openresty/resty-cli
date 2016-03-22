@@ -490,6 +490,16 @@ sub process_remaining_line {
                 next;
             }
 
+            if (/ \G ([<>]) /gcx) {
+                my $c = $1;
+                if ($c eq '<') {
+                    $out .= "E<lt>";
+
+                } elsif ($c eq '>') {
+                    $out .= "E<gt>";
+                }
+            }
+
             if (/ \G \&(\w+); /gcx) {
                 my $entity = $1;
                 my $pod = $html_entities{$entity};
@@ -552,7 +562,7 @@ sub process_remaining_line {
                 next;
             }
 
-            if (/ \G ( [^`\[\n*_\&\\]+ ) /gcxm) {
+            if (/ \G ( [^`<>\[\n*_\&\\]+ ) /gcxm) {
                 $out .= $1;
                 next;
             }
