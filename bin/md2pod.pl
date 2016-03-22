@@ -140,7 +140,7 @@ sub process_file {
                     undef $cur_list_indent;
                 }
 
-                my $level = $type eq '=' ? 1 : 2;
+                my $level = ($type =~ /=/) ? 1 : 2;
 
                 $out .= "\n=head$level ";
                 $out .= process_remaining_line($title);
