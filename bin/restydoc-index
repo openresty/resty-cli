@@ -36,7 +36,7 @@ if (!-d $poddir) {
         or die "failed to create $poddir: $!\n";
 }
 
-my @dist_files;
+my @dist_modules;
 
 File::Find::find(\&wanted,  $indir);
 
@@ -50,8 +50,8 @@ if (@aliases) {
     $index .= "  aliases @aliases\n";
 }
 
-if (@dist_files) {
-    $index .= "  files @dist_files\n";
+if (@dist_modules) {
+    $index .= "  modules @dist_modules\n";
 }
 
 $index .= "\n";
@@ -86,7 +86,7 @@ sub wanted {
 
     process_pod($podfile);
 
-    push @dist_files, $name;
+    push @dist_modules, $name;
 }
 
 sub process_pod {

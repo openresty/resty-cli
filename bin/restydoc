@@ -17,9 +17,9 @@ if ($opts{h}) {
 
 my $section = $opts{s};
 
-my $module = shift;
+my $module_pat = shift;
 
-if (!$section && !$module) {
+if (!$section && !$module_pat) {
     print STDERR "ERROR: you need to specify a module name or ",
                  "a section name.\n\n";
     usage(1);
@@ -40,7 +40,7 @@ my @records;
 while (<$in>) {
     next if / ^ \s* $ /x;
 
-    if (/ ^ \s* dist \s+ (\S+) $/x) {
+    if (/ ^ dist \s+ (\S+) $/x) {
         $rec = {
             dist => $1,
         };
@@ -48,7 +48,7 @@ while (<$in>) {
         next;
     }
 
-    if (/ ^ \s* version \s+ (\S+) $/x) {
+    if (/ ^ \s+ version \s+ (\S+) $/x) {
         my $ver = $1;
         if (!defined $rec) {
             die "ERROR: $index_file: line $.: unexpected version line.\n";
@@ -57,9 +57,9 @@ while (<$in>) {
         next;
     }
 
-    if (/ ^ \s* aliases \s+ (\S.*) $/x) {
+    if (/ ^ \s+ aliases \s+ (\S.*) $/x) {
         (my $s = $1) =~ s/\s+$//;
-        my @elems = split /\s+/, $1;
+        my @elems = split /\s+/, $s;
         if (!defined $rec) {
             die "ERROR: $index_file: line $.: unexpected aliases line.\n";
         }
@@ -70,15 +70,15 @@ while (<$in>) {
         next;
     }
 
-    if (/ ^ \s* files \s+ (\S.*) $/x) {
+    if (/ ^ \s+ modules \s+ (\S.*) $/x) {
         (my $s = $1) =~ s/\s+$//;
         if (!defined $rec) {
             die "ERROR: $index_file: line $.: unexpected files line.\n";
         }
-        my @elems = split /\s+/, $1;
+        my @elems = split /\s+/, $s;
         if (@elems) {
-            my %files = map { ($_ => 1) } @elems;
-            $rec->{files} = \%files;
+            my %modules = map { ($_ => 1) } @elems;
+            $rec->{modules} = \%modules;
         }
         next;
     }
@@ -94,9 +94,9 @@ if (!@records) {
 
 my $poddir = "$FindBin::Bin/../pod";
 
-if ($module) {
-    if ($module =~ m{/|\.\.}) {
-        die "invalid module name: $module\n";
+if ($module_pat) {
+    if ($module_pat =~ m{/|\.\.}) {
+        die "invalid module pattern $module_pat\n";
     }
 
     my ($hit, $name);
@@ -104,28 +104,28 @@ if ($module) {
     # 1. attempt an exact match
 
     for my $r (@records) {
-        if ($r->{dist} eq $module) {
+        if ($r->{dist} eq $module_pat) {
             $hit = $r;
-            $name = $module;
+            $name = $module_pat;
             last;
         }
 
-        if (defined $r->{aliases} && $r->{aliases}{$module}) {
+        if (defined $r->{aliases} && $r->{aliases}{$module_pat}) {
             $hit = $r;
             $name = $r->{dist};
             last;
         }
 
-        if (defined $r->{files} && $r->{files}{$module}) {
+        if (defined $r->{modules} && $r->{modules}{$module_pat}) {
             $hit = $r;
-            $name = $module;
+            $name = $module_pat;
             last;
         }
     }
 
     if (defined $hit) {
-        if (!defined $hit->{files} || !$hit->{files}{$name}) {
-            die "No documentation found for module $module.\n";
+        if (!defined $hit->{modules} || !$hit->{modules}{$name}) {
+            die "No documentation found for module $module_pat.\n";
         }
 
         return process_module_hit($hit, $name);
@@ -134,7 +134,7 @@ if ($module) {
     # 2. attempt a prefix match
 
     for my $r (@records) {
-        if ($r->{dist} =~ / ^ \Q$module\E/x) {
+        if ($r->{dist} =~ / ^ \Q$module_pat\E/x) {
             $hit = $r;
             $name = $r->{dist};
             last;
@@ -143,7 +143,7 @@ if ($module) {
         my $aliases = $r->{aliases};
         if (defined $aliases) {
             for my $alias (keys %$aliases) {
-                if ($alias =~ / ^ \Q$module\E /x) {
+                if ($alias =~ / ^ \Q$module_pat\E /x) {
                     $hit = $r;
                     $name = $r->{dist};
                     last;
@@ -155,10 +155,10 @@ if ($module) {
             }
         }
 
-        my $files = $r->{files};
-        if (defined $files) {
-            for my $file (keys %$files) {
-                if ($file =~ / ^ \Q$module\E /x) {
+        my $modules = $r->{modules};
+        if (defined $modules) {
+            for my $module (keys %$modules) {
+                if ($module =~ / ^ \Q$module_pat\E /x) {
                     $hit = $r;
                     $name = $r->{dist};
                     last;
@@ -178,7 +178,7 @@ if ($module) {
     # 3. attempt a contains search
 
     for my $r (@records) {
-        if ($r->{dist} =~ / \Q$module\E/x) {
+        if ($r->{dist} =~ / \Q$module_pat\E/x) {
             $hit = $r;
             $name = $r->{dist};
             last;
@@ -187,7 +187,7 @@ if ($module) {
         my $aliases = $r->{aliases};
         if (defined $aliases) {
             for my $alias (keys %$aliases) {
-                if ($alias =~ / \Q$module\E /x) {
+                if ($alias =~ / \Q$module_pat\E /x) {
                     $hit = $r;
                     $name = $r->{dist};
                     last;
@@ -199,10 +199,10 @@ if ($module) {
             }
         }
 
-        my $files = $r->{files};
-        if (defined $files) {
-            for my $file (keys %$files) {
-                if ($file =~ / \Q$module\E /x) {
+        my $modules = $r->{modules};
+        if (defined $modules) {
+            for my $module (keys %$modules) {
+                if ($module =~ / \Q$module_pat\E /x) {
                     $hit = $r;
                     $name = $r->{dist};
                     last;
@@ -219,7 +219,7 @@ if ($module) {
         return process_module_hit($hit, $name);
     }
 
-    die "No documentation found for module pattern $module.\n";
+    die "No documentation found for module pattern $module_pat.\n";
 }
 
 sub process_module_hit {
