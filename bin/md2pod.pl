@@ -158,7 +158,7 @@ sub process_file {
                 $just_seen_newline = 1;
                 $out .= "\n";
 
-                if ($list_level) {
+                if ($list_level && m/ \G (?! ^ \  ) /gcxm) {
                     for (my $level = $list_level; $level > 0; $level--) {
                         $out .= "\n=back\n\n";
                         my $ind = $level2ind{$level};
