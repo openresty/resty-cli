@@ -182,6 +182,26 @@ if ($module_pat) {
         exit;
     }
 
+    # 2. attemp a prefix match.
+
+    my $sections = $module->{sections};
+    for my $sec (@$sections) {
+        if ($sec->{title} =~ / ^ \Q$section_pat\E /x) {
+            process_section_hit($hit_dist, $sec, $hit_module_name);
+            exit;
+        }
+    }
+
+    # 3. attemp a contains match.
+
+    my $sections = $module->{sections};
+    for my $sec (@$sections) {
+        if ($sec->{title} =~ / \Q$section_pat\E /x) {
+            process_section_hit($hit_dist, $sec, $hit_module_name);
+            exit;
+        }
+    }
+
     die "Documentation for section pattern \"$section_pat\" in ",
         "module $hit_module_name not found.\n";
 }
@@ -326,6 +346,10 @@ sub process_section_hit {
         or die "Cannot open $podfile for reading: $!\n";
 
     my $from = $section->{from};
+    if (!defined $from) {
+        die "No from defined in section $section->{title} in module $module_name.\n";
+    }
+
     seek $in, $from, 0
         or die "Cannot seek to $section->{from} in file $podfile: $!\n";
 
