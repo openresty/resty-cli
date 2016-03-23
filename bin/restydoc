@@ -31,7 +31,7 @@ my $index_file = File::Spec->canonpath("$FindBin::Bin/../resty.index");
 open my $in, $index_file
     or die "cannot open $index_file for reading: $!\n";
 
-my ($dist, @dists, $module, %modules);
+my ($dist, @dists, $module, %modules, @modules, %module2dist);
 while (<$in>) {
     next if / ^ \s* $ /x;
 
@@ -39,8 +39,17 @@ while (<$in>) {
         my $name = $1;
         $module = {
             name => $name,
+            priority => $.,  # smaller priority means higher priority.
+            index => scalar @modules,
         };
+
+        my $old_module = $modules{$name};
+        if (defined $old_module) {
+            undef $modules[$old_module->{index}];
+        }
+
         $modules{$name} = $module;
+        push @modules, $module;
         next;
     }
 
@@ -114,6 +123,9 @@ while (<$in>) {
         if (@elems) {
             my %modules = map { ($_ => 1) } @elems;
             $dist->{modules} = \%modules;
+            for my $elem (@elems) {
+                $module2dist{$elem} = $dist;
+            }
         }
         next;
     }
@@ -194,7 +206,6 @@ if ($module_pat) {
 
     # 3. attemp a contains match.
 
-    my $sections = $module->{sections};
     for my $sec (@$sections) {
         if ($sec->{title} =~ / \Q$section_pat\E /x) {
             process_section_hit($hit_dist, $sec, $hit_module_name);
@@ -205,6 +216,53 @@ if ($module_pat) {
     die "Documentation for section pattern \"$section_pat\" in ",
         "module $hit_module_name not found.\n";
 }
+
+# when only the section pattern is specified.
+
+for my $module (@modules) {
+    next if !defined $module;
+
+    my $module_name = $module->{name};
+    my $dist = $module2dist{$module_name};
+    if (!defined $dist) {
+        die "ERROR: $index_file: module $module_name does not ",
+            "belong to any distributions.\n";
+    }
+
+    # 1. attempt an exact match.
+
+    my $section_dict = $module->{section_dict};
+    #require Data::Dumper;
+    #warn Data::Dumper::Dumper($section_dict);
+
+    my $hit_section = $section_dict->{$section_pat};
+    if (defined $hit_section) {
+        process_section_hit($dist, $hit_section, $module_name);
+        exit;
+    }
+
+    # 2. attemp a prefix match.
+
+    my $sections = $module->{sections};
+    for my $sec (@$sections) {
+        if ($sec->{title} =~ / ^ \Q$section_pat\E /x) {
+            process_section_hit($dist, $sec, $module_name);
+            exit;
+        }
+    }
+
+    # 3. attemp a contains match.
+
+    for my $sec (@$sections) {
+        if ($sec->{title} =~ / \Q$section_pat\E /x) {
+            process_section_hit($dist, $sec, $module_name);
+            exit;
+        }
+    }
+
+}
+
+die "Documentation for section pattern \"$section_pat\" not found.\n";
 
 sub find_module {
     my $pat = shift;
