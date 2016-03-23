@@ -1,0 +1,281 @@
+#!/usr/bin/env perl
+
+use strict;
+use warnings;
+
+use Getopt::Std qw( getopts );
+use File::Spec ();
+use FindBin ();
+
+my %opts;
+getopts("hs:", \%opts)
+    or usage(1);
+
+if ($opts{h}) {
+    usage(0);
+}
+
+my $section = $opts{s};
+
+my $module = shift;
+
+if (!$section && !$module) {
+    print STDERR "ERROR: you need to specify a module name or ",
+                 "a section name.\n\n";
+    usage(1);
+}
+
+if (defined $section) {
+    die "ERROR: the -s option not implemented yet.\n";
+}
+
+my $interactive = (-t STDOUT);
+
+my $index_file = File::Spec->canonpath("$FindBin::Bin/../resty.index");
+open my $in, $index_file
+    or die "cannot open $index_file for reading: $!\n";
+
+my $rec;
+my @records;
+while (<$in>) {
+    next if / ^ \s* $ /x;
+
+    if (/ ^ \s* dist \s+ (\S+) $/x) {
+        $rec = {
+            dist => $1,
+        };
+        push @records, $rec;
+        next;
+    }
+
+    if (/ ^ \s* version \s+ (\S+) $/x) {
+        my $ver = $1;
+        if (!defined $rec) {
+            die "ERROR: $index_file: line $.: unexpected version line.\n";
+        }
+        $rec->{version} = $ver;
+        next;
+    }
+
+    if (/ ^ \s* aliases \s+ (\S.*) $/x) {
+        (my $s = $1) =~ s/\s+$//;
+        my @elems = split /\s+/, $1;
+        if (!defined $rec) {
+            die "ERROR: $index_file: line $.: unexpected aliases line.\n";
+        }
+        if (@elems) {
+            my %aliases = map { ($_ => 1) } @elems;
+            $rec->{aliases} = \%aliases;
+        }
+        next;
+    }
+
+    if (/ ^ \s* files \s+ (\S.*) $/x) {
+        (my $s = $1) =~ s/\s+$//;
+        if (!defined $rec) {
+            die "ERROR: $index_file: line $.: unexpected files line.\n";
+        }
+        my @elems = split /\s+/, $1;
+        if (@elems) {
+            my %files = map { ($_ => 1) } @elems;
+            $rec->{files} = \%files;
+        }
+        next;
+    }
+
+    die "ERROR: $index_file: line $.: syntax error: $_";
+}
+
+close $in;
+
+if (!@records) {
+    die "ERROR: $index_file is empty.\n";
+}
+
+my $poddir = "$FindBin::Bin/../pod";
+
+if ($module) {
+    if ($module =~ m{/|\.\.}) {
+        die "invalid module name: $module\n";
+    }
+
+    my ($hit, $name);
+
+    # 1. attempt an exact match
+
+    for my $r (@records) {
+        if ($r->{dist} eq $module) {
+            $hit = $r;
+            $name = $module;
+            last;
+        }
+
+        if (defined $r->{aliases} && $r->{aliases}{$module}) {
+            $hit = $r;
+            $name = $r->{dist};
+            last;
+        }
+
+        if (defined $r->{files} && $r->{files}{$module}) {
+            $hit = $r;
+            $name = $module;
+            last;
+        }
+    }
+
+    if (defined $hit) {
+        if (!defined $hit->{files} || !$hit->{files}{$name}) {
+            die "No documentation found for module $module.\n";
+        }
+
+        return process_module_hit($hit, $name);
+    }
+
+    # 2. attempt a prefix match
+
+    for my $r (@records) {
+        if ($r->{dist} =~ / ^ \Q$module\E/x) {
+            $hit = $r;
+            $name = $r->{dist};
+            last;
+        }
+
+        my $aliases = $r->{aliases};
+        if (defined $aliases) {
+            for my $alias (keys %$aliases) {
+                if ($alias =~ / ^ \Q$module\E /x) {
+                    $hit = $r;
+                    $name = $r->{dist};
+                    last;
+                }
+            }
+
+            if (defined $hit) {
+                last;
+            }
+        }
+
+        my $files = $r->{files};
+        if (defined $files) {
+            for my $file (keys %$files) {
+                if ($file =~ / ^ \Q$module\E /x) {
+                    $hit = $r;
+                    $name = $r->{dist};
+                    last;
+                }
+            }
+
+            if (defined $hit) {
+                last;
+            }
+        }
+    }
+
+    if (defined $hit) {
+        return process_module_hit($hit, $name);
+    }
+
+    # 3. attempt a contains search
+
+    for my $r (@records) {
+        if ($r->{dist} =~ / \Q$module\E/x) {
+            $hit = $r;
+            $name = $r->{dist};
+            last;
+        }
+
+        my $aliases = $r->{aliases};
+        if (defined $aliases) {
+            for my $alias (keys %$aliases) {
+                if ($alias =~ / \Q$module\E /x) {
+                    $hit = $r;
+                    $name = $r->{dist};
+                    last;
+                }
+            }
+
+            if (defined $hit) {
+                last;
+            }
+        }
+
+        my $files = $r->{files};
+        if (defined $files) {
+            for my $file (keys %$files) {
+                if ($file =~ / \Q$module\E /x) {
+                    $hit = $r;
+                    $name = $r->{dist};
+                    last;
+                }
+            }
+
+            if (defined $hit) {
+                last;
+            }
+        }
+    }
+
+    if (defined $hit) {
+        return process_module_hit($hit, $name);
+    }
+
+    die "No documentation found for module pattern $module.\n";
+}
+
+sub process_module_hit {
+    my ($hit, $name) = @_;
+
+    #warn "Found $name";
+    my $full_dist_name = $hit->{dist};
+    my $dist_ver = $hit->{version};
+    if (defined $dist_ver) {
+        $full_dist_name .= " $dist_ver";
+    }
+
+    my $podfile = "$poddir/$name.pod";
+    if (!-f $podfile) {
+        die "POD file $podfile not found.\n";
+    }
+
+    if (!$interactive) {
+        exec("pod2text -u $podfile | nroff -Wbreak -man | less -n");
+    }
+
+    exec("pod2man -u -c 'OpenResty Documentation' "
+          . "-d '$full_dist_name' -r -s 7 -n '$name' "
+          . "$podfile | nroff -Wbreak -man | less -n");
+}
+
+sub shell {
+    my $cmd = shift;
+
+    #warn $cmd;
+    system($cmd) == 0
+        or die "failed to run command \"$cmd\": $!\n";
+}
+
+sub usage {
+    my $code = shift;
+    my $msg = <<_EOC_;
+Usage:
+    $0 [options] [module]
+
+Options:
+    -h              Print this help.
+    -s SECTION      Specify the section name to be searched
+
+For bug reporting instructions, please see:
+
+    <https://openresty.org/en/community.html>
+
+Copyright (C) Yichun Zhang (agentzh). All rights reserved.
+_EOC_
+
+    if ($code == 0) {
+        print $msg;
+        exit 0;
+    }
+
+    print STDERR $msg;
+    exit $code;
+}
