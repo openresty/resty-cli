@@ -95,11 +95,11 @@ sub process_pod {
     open my $in, "<:encoding(UTF-8)", $infile or
         die "cannot open $infile for reading: $!\n";
 
-    my ($level, $new);
+    my ($toc_level, $new);
     while (<$in>) {
-        if (defined $level) {
-            if (/ ^ =head (\d+) /x && $1 >= $level) {
-                undef $level;
+        if (defined $toc_level) {
+            if (/ ^ =head (\d+) /x && $1 >= $toc_level) {
+                undef $toc_level;
                 next;
             }
 
@@ -110,7 +110,7 @@ sub process_pod {
         # !defined $level
 
         if (/ ^ =head (\d+) \s+ Table \s+ of \s+ Contents? \s* $ /ix) {
-            $level = $1;
+            $toc_level = $1;
             # ignore the content
             next;
         }
