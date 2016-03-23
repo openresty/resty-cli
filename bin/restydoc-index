@@ -7,6 +7,7 @@ use FindBin ();
 use File::Find ();
 use Cwd qw( cwd );
 use File::Spec ();
+use bytes ();
 
 my $indir = shift
     or die "no input project directory name specified.\n";
@@ -54,6 +55,20 @@ if (@aliases) {
 if (@dist_modules) {
     my @names = map { lc($_->{name}) } @dist_modules;
     $index .= "  modules " . join(" ", @names) . "\n";
+
+    for my $module (@dist_modules) {
+        $index .= <<_EOC_;
+
+module $module->{name}
+_EOC_
+
+        my $sections = $module->{sections};
+        if (defined $sections) {
+            for my $sec (@$sections) {
+                $index .= "  section $sec->{from} $sec->{to} $sec->{title}\n";
+            }
+        }
+    }
 }
 
 $index .= "\n";
@@ -131,6 +146,67 @@ sub process_pod {
         or die "cannot open $infile for writing: $!\n";
     print $out $new;
     close $out;
+
+    open $in, "<:encoding(UTF-8)", $infile or
+        die "cannot open $infile for reading: $!\n";
+
+    my @sections;
+    while (<$in>) {
+        if (/ ^ =head (\d+) \s+ (\S.*) /mx) {
+            my $level = $1;
+            (my $title = $2) =~ s/\s+$//;
+            $title = lc $title;
+            my $len = bytes::length($_);
+            my $pos = tell($in) - $len;
+            my $sec = {
+                title => $title,
+                from => $pos,
+                level => $level,
+            };
+            push @sections, $sec;
+        }
+    }
+
+    my $final_pos = tell $in;
+
+    close $in;
+
+    my (%levels, $prev_level);
+    for my $sec (@sections) {
+        my $level = $sec->{level};
+        if (defined $prev_level && $level <= $prev_level) {
+            for (my $l = $prev_level; $l >= $level; $l--) {
+                my $s = $levels{$l};
+                next if !defined $s;
+                #warn "setting to...";
+                $s->{to} = $sec->{from};
+                delete $levels{$l};
+            }
+        }
+
+        if (defined $prev_level && $levels{$level}) {
+            die "Bad level $level";
+        }
+        $levels{$level} = $sec;
+        $prev_level = $level;
+    }
+
+    for (my $l = $prev_level; $l >= 1; $l--) {
+        my $s = $levels{$l};
+        next if !defined $s;
+        #warn "setting to...";
+        $s->{to} = $final_pos;
+        delete $levels{$l};
+    }
+
+    if (%levels) {
+        require Data::Dumper;
+        die "cannot happen: ", Data::Dumper::Dumper(\%levels);
+    }
+
+    if (@sections) {
+        $dist_module->{sections} = \@sections;
+    }
 
     return $dist_module;
 }

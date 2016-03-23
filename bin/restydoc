@@ -6,6 +6,7 @@ use warnings;
 use Getopt::Std qw( getopts );
 use File::Spec ();
 use FindBin ();
+use File::Temp qw( tempfile );
 
 my %opts;
 getopts("hs:", \%opts)
@@ -15,21 +16,13 @@ if ($opts{h}) {
     usage(0);
 }
 
-my $section = $opts{s};
-
+my $section_pat = $opts{s};
 my $module_pat = shift;
-if ($module_pat) {
-    $module_pat = lc $module_pat;
-}
 
-if (!$section && !$module_pat) {
+if (!$section_pat && !$module_pat) {
     print STDERR "ERROR: you need to specify a module name or ",
                  "a section name.\n\n";
     usage(1);
-}
-
-if (defined $section) {
-    die "ERROR: the -s option not implemented yet.\n";
 }
 
 my $interactive = (-t STDOUT);
@@ -38,50 +31,89 @@ my $index_file = File::Spec->canonpath("$FindBin::Bin/../resty.index");
 open my $in, $index_file
     or die "cannot open $index_file for reading: $!\n";
 
-my $rec;
-my @records;
+my ($dist, @dists, $module, %modules);
 while (<$in>) {
     next if / ^ \s* $ /x;
 
-    if (/ ^ dist \s+ (\S+) $/x) {
-        $rec = {
-            dist => $1,
+    if (/ ^ module \s+ (\S+) \s* $/x) {
+        my $name = $1;
+        $module = {
+            name => $name,
         };
-        push @records, $rec;
+        $modules{$name} = $module;
         next;
     }
 
-    if (/ ^ \s+ version \s+ (\S+) $/x) {
+    if (/ ^ \s* section \s+ (\d+) \s+ (\d+) \s+ (\S.*) $ /xm) {
+        my ($from, $to, $title) = ($1, $2, $3);
+        $title =~ s/\s+$//;
+
+        if ($from > $to) {
+            die "ERROR: $index_file: line $.: invalid \"from\" and ",
+                "\"to\" fields.\n";
+        }
+
+        undef $dist;
+
+        if (!defined $module) {
+            die "ERROR: $index_file: line $.: unepxected section line.\n";
+        }
+
+        my $sections = $module->{sections};
+        if (!defined $sections) {
+            $sections = [];
+            $module->{sections} = $sections;
+        }
+
+        push @$sections, {
+            title => $title,
+            from => $from,
+            to => $to,
+        };
+
+        next;
+    }
+
+    if (/ ^ dist \s+ (\S+) \s* $/x) {
+        undef $module;
+        $dist = {
+            dist => $1,
+        };
+        push @dists, $dist;
+        next;
+    }
+
+    if (/ ^ \s+ version \s+ (\S+) \s* $/x) {
         my $ver = $1;
-        if (!defined $rec) {
+        if (!defined $dist) {
             die "ERROR: $index_file: line $.: unexpected version line.\n";
         }
-        $rec->{version} = $ver;
+        $dist->{version} = $ver;
         next;
     }
 
     if (/ ^ \s+ aliases \s+ (\S.*) $/x) {
         (my $s = $1) =~ s/\s+$//;
         my @elems = split /\s+/, $s;
-        if (!defined $rec) {
+        if (!defined $dist) {
             die "ERROR: $index_file: line $.: unexpected aliases line.\n";
         }
         if (@elems) {
             my %aliases = map { ($_ => 1) } @elems;
-            $rec->{aliases} = \%aliases;
+            $dist->{aliases} = \%aliases;
         }
         next;
     }
 
     if (/ ^ \s+ modules \s+ (\S.*) $/x) {
         (my $s = $1) =~ s/\s+$//;
-        if (!defined $rec) {
-            die "ERROR: $index_file: line $.: unexpected files line.\n";
+        if (!defined $dist) {
+            die "ERROR: $index_file: line $.: unexpected modules line.\n";
         }
         my @elems = split /\s+/, $s;
         if (@elems) {
             my %modules = map { ($_ => 1) } @elems;
-            $rec->{modules} = \%modules;
+            $dist->{modules} = \%modules;
         }
         next;
     }
@@ -91,62 +123,117 @@ while (<$in>) {
 
 close $in;
 
-if (!@records) {
+if (!@dists) {
     die "ERROR: $index_file is empty.\n";
 }
 
 my $poddir = "$FindBin::Bin/../pod";
 
+if ($section_pat) {
+    $section_pat = lc $section_pat;
+
+    for my $module (values %modules) {
+        my $sections = $module->{sections};
+        next if !defined $sections;
+        my %dict;
+        for my $sec (@$sections) {
+            my $title = $sec->{title};
+            next if exists $dict{$title};
+            $dict{$title} = $sec;
+        }
+        $module->{section_dict} = \%dict;
+    }
+}
+
 if ($module_pat) {
     if ($module_pat =~ m{/|\.\.}) {
-        die "invalid module pattern $module_pat\n";
+        die "Invalid module pattern \"$module_pat\".\n";
     }
+
+    $module_pat = lc $module_pat;
+
+    my ($hit_dist, $hit_module_name) = find_module($module_pat);
+
+    if (!$hit_dist) {
+        process_module_hit($hit_dist, $hit_module_name);
+        exit;
+    }
+
+    if (!defined $section_pat) {
+        die "Documentation for module pattern \"$module_pat\" not found.\n";
+    }
+
+    # look for the section in the module
+
+    my $module = $modules{$hit_module_name};
+    if (!defined $module) {
+        die "No \"module\" record found for $hit_module_name.\n";
+    }
+
+    # 1. attempt an exact match.
+
+    my $section_dict = $module->{section_dict};
+    #require Data::Dumper;
+    #warn Data::Dumper::Dumper($section_dict);
+
+    my $hit_section = $section_dict->{$section_pat};
+    if (defined $hit_section) {
+        process_section_hit($hit_dist, $hit_section, $hit_module_name);
+        exit;
+    }
+
+    die "Documentation for section pattern \"$section_pat\" in ",
+        "module $hit_module_name not found.\n";
+}
+
+sub find_module {
+    my $pat = shift;
 
     my ($hit, $name);
 
     # 1. attempt an exact match
 
-    for my $r (@records) {
-        if ($r->{dist} eq $module_pat) {
+    for my $r (@dists) {
+        if ($r->{dist} eq $pat) {
             $hit = $r;
-            $name = $module_pat;
+            $name = $pat;
             last;
         }
 
-        if (defined $r->{aliases} && $r->{aliases}{$module_pat}) {
+        if (defined $r->{modules} && $r->{modules}{$pat}) {
+            $hit = $r;
+            $name = $pat;
+            last;
+        }
+
+        if (defined $r->{aliases} && $r->{aliases}{$pat}) {
             $hit = $r;
             $name = $r->{dist};
-            last;
-        }
-
-        if (defined $r->{modules} && $r->{modules}{$module_pat}) {
-            $hit = $r;
-            $name = $module_pat;
             last;
         }
     }
 
     if (defined $hit) {
         if (!defined $hit->{modules} || !$hit->{modules}{$name}) {
-            die "No documentation found for module $module_pat.\n";
+            die "No documentation found for module $pat.\n";
         }
 
-        return process_module_hit($hit, $name);
+        return $hit, $name;
     }
 
     # 2. attempt a prefix match
 
-    for my $r (@records) {
-        if ($r->{dist} =~ / ^ \Q$module_pat\E/x) {
+    for my $r (@dists) {
+        if ($r->{dist} =~ / ^ \Q$pat\E/x) {
             $hit = $r;
             $name = $r->{dist};
             last;
         }
 
-        my $aliases = $r->{aliases};
-        if (defined $aliases) {
-            for my $alias (keys %$aliases) {
-                if ($alias =~ / ^ \Q$module_pat\E /x) {
+        my $modules = $r->{modules};
+        if (defined $modules) {
+            for my $module (keys %$modules) {
+                if ($module =~ / ^ \Q$pat\E /x) {
                     $hit = $r;
                     $name = $r->{dist};
                     last;
@@ -158,10 +245,10 @@ if ($module_pat) {
             }
         }
 
-        my $modules = $r->{modules};
-        if (defined $modules) {
-            for my $module (keys %$modules) {
-                if ($module =~ / ^ \Q$module_pat\E /x) {
+        my $aliases = $r->{aliases};
+        if (defined $aliases) {
+            for my $alias (keys %$aliases) {
+                if ($alias =~ / ^ \Q$pat\E /x) {
                     $hit = $r;
                     $name = $r->{dist};
                     last;
@@ -175,22 +262,22 @@ if ($module_pat) {
     }
 
     if (defined $hit) {
-        return process_module_hit($hit, $name);
+        return $hit, $name;
     }
 
     # 3. attempt a contains search
 
-    for my $r (@records) {
-        if ($r->{dist} =~ / \Q$module_pat\E/x) {
+    for my $r (@dists) {
+        if ($r->{dist} =~ / \Q$pat\E/x) {
             $hit = $r;
             $name = $r->{dist};
             last;
         }
 
-        my $aliases = $r->{aliases};
-        if (defined $aliases) {
-            for my $alias (keys %$aliases) {
-                if ($alias =~ / \Q$module_pat\E /x) {
+        my $modules = $r->{modules};
+        if (defined $modules) {
+            for my $module (keys %$modules) {
+                if ($module =~ / \Q$pat\E /x) {
                     $hit = $r;
                     $name = $r->{dist};
                     last;
@@ -202,10 +289,10 @@ if ($module_pat) {
             }
         }
 
-        my $modules = $r->{modules};
-        if (defined $modules) {
-            for my $module (keys %$modules) {
-                if ($module =~ / \Q$module_pat\E /x) {
+        my $aliases = $r->{aliases};
+        if (defined $aliases) {
+            for my $alias (keys %$aliases) {
+                if ($alias =~ / \Q$pat\E /x) {
                     $hit = $r;
                     $name = $r->{dist};
                     last;
@@ -219,10 +306,52 @@ if ($module_pat) {
     }
 
     if (defined $hit) {
-        return process_module_hit($hit, $name);
+        return $hit, $name;
     }
 
-    die "No documentation found for module pattern $module_pat.\n";
+    die "No documentation found for module pattern $pat.\n";
+}
+
+sub process_section_hit {
+    my ($dist, $section, $module_name) = @_;
+
+    my $full_dist_name = $dist->{dist};
+    my $dist_ver = $dist->{version};
+    if (defined $dist_ver) {
+        $full_dist_name .= " $dist_ver";
+    }
+
+    my $podfile = "$poddir/$module_name.pod";
+    open my $in, $podfile
+        or die "Cannot open $podfile for reading: $!\n";
+
+    my $from = $section->{from};
+    seek $in, $from, 0
+        or die "Cannot seek to $section->{from} in file $podfile: $!\n";
+
+    my $pod;
+    my $to = $section->{to};
+    read $in, $pod, $to - $from
+        or die "Cannot read from file $podfile starting from $from through $to";
+
+    close $in;
+
+    if (!$pod) {
+        die "ERROR: section \"$section->{title}\" is empty.\n";
+    }
+
+    my ($tmp, $tmpfile) = tempfile( CLEANUP => 1, SUFFIX => '.pod' );
+
+    print $tmp $pod;
+    close $tmp;
+
+    if (!$interactive) {
+        exec("pod2text -u $tmpfile | nroff -Wbreak -man | less -n");
+    }
+
+    exec("pod2man -u -c 'OpenResty Documentation' "
+          . "-d '$full_dist_name' -r -s 7 -n '$module_name' "
+          . "$tmpfile | nroff -Wbreak -man | less -n");
 }
 
 sub process_module_hit {
