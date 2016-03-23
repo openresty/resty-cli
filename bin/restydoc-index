@@ -19,6 +19,7 @@ $indir =~ s{/+$}{}g;
 
 (my $full_dist_name = $indir) =~ s{.*/}{};
 (my $dist_name = $full_dist_name) =~ s{ [-_] v? ( \d+ (?:\.\d+)* (?: rc\d+ | _\d+ )? ) $ }{}i;
+$dist_name = lc $dist_name;
 my $dist_ver = $1;
 
 #print "name: $full_dist_name\n";
@@ -51,7 +52,8 @@ if (@aliases) {
 }
 
 if (@dist_modules) {
-    $index .= "  modules @dist_modules\n";
+    my @names = map { lc($_->{name}) } @dist_modules;
+    $index .= "  modules " . join(" ", @names) . "\n";
 }
 
 $index .= "\n";
@@ -67,8 +69,9 @@ sub wanted {
     my $mdfile = $File::Find::name;
 
     my $name = File::Spec->abs2rel($mdfile, $indir);
-    return if $name =~ /^node_modules/;
+    return if $name =~ /^node_modules/i;
 
+    $name = lc $name;
     $name =~ s{ ^ (?: lib | src | lua ) / }{}x;
     $name =~ s{ \. \w+ $ }{}x;
     $name =~ s{/}{.}g;
@@ -84,13 +87,17 @@ sub wanted {
     my $podfile = "$poddir/$name.pod";
     shell("$FindBin::Bin/md2pod.pl -o $podfile $mdfile");
 
-    process_pod($podfile);
+    my $dist_module = process_pod($podfile, $name);
 
-    push @dist_modules, $name;
+    push @dist_modules, $dist_module;
 }
 
 sub process_pod {
-    my $infile = shift;
+    my ($infile, $name) = @_;
+
+    my $dist_module = {
+        name => $name,
+    };
 
     open my $in, "<:encoding(UTF-8)", $infile or
         die "cannot open $infile for reading: $!\n";
@@ -124,6 +131,8 @@ sub process_pod {
         or die "cannot open $infile for writing: $!\n";
     print $out $new;
     close $out;
+
+    return $dist_module;
 }
 
 sub shell {
@@ -156,7 +165,7 @@ sub gen_aliases {
             or die "cannot open $config_file for reading: $!\n";
         while (<$in>) {
             if (/ \b ngx_addon_name = .*? (\w+) /x) {
-                my $addon = $1;
+                my $addon = lc $1;
                 push @aliases, $addon;
                 last;
             }

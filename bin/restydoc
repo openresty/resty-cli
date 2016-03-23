@@ -18,6 +18,9 @@ if ($opts{h}) {
 my $section = $opts{s};
 
 my $module_pat = shift;
+if ($module_pat) {
+    $module_pat = lc $module_pat;
+}
 
 if (!$section && !$module_pat) {
     print STDERR "ERROR: you need to specify a module name or ",
