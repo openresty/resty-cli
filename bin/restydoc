@@ -453,6 +453,7 @@ sub process_section_hit {
 
     my ($tmp, $tmpfile) = tempfile( CLEANUP => 1, SUFFIX => '.pod' );
 
+    print $tmp "=encoding utf-8\n\n";
     print $tmp $pod;
     close $tmp;
 
@@ -462,7 +463,7 @@ sub process_section_hit {
 
     exec("pod2man -u -c '$full_dist_name' "
           . " -r -s 7 -n '$module_name' "
-          . "$tmpfile | groff -Tascii -Wbreak -mandoc | less -n");
+          . "$tmpfile | groff -Kutf8 -Tutf8 -mandoc -Wbreak | less -n");
 }
 
 sub process_module_hit {
@@ -485,12 +486,12 @@ sub process_module_hit {
     }
 
     if (!$interactive) {
-        exec("pod2text -u $podfile | nroff -Wbreak -man | less -n");
+        exec("pod2text -u $podfile | less -n");
     }
 
     exec("pod2man -u -c '$full_dist_name' "
           . "-r -s 7 -n '$name' "
-          . "$podfile | groff -Tascii -mandoc -Wbreak | less -n");
+          . "$podfile | groff -Kutf8 -Tutf8 -mandoc -Wbreak | less -n");
 }
 
 sub shell {
