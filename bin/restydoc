@@ -228,8 +228,15 @@ for my $module (@modules) {
         die "ERROR: $index_file: module $module_name does not ",
             "belong to any distributions.\n";
     }
+}
 
-    # 1. attempt an exact match.
+# 1. attempt an exact match.
+
+for my $module (@modules) {
+    next if !defined $module;
+
+    my $module_name = $module->{name};
+    my $dist = $module2dist{$module_name};
 
     my $section_dict = $module->{section_dict};
     #require Data::Dumper;
@@ -240,8 +247,15 @@ for my $module (@modules) {
         process_section_hit($dist, $hit_section, $module_name);
         exit;
     }
+}
 
-    # 2. attemp a prefix match.
+# 2. attemp a prefix match.
+
+for my $module (@modules) {
+    next if !defined $module;
+
+    my $module_name = $module->{name};
+    my $dist = $module2dist{$module_name};
 
     my $sections = $module->{sections};
     for my $sec (@$sections) {
@@ -250,8 +264,16 @@ for my $module (@modules) {
             exit;
         }
     }
+}
 
-    # 3. attemp a contains match.
+# 3. attemp a contains match.
+
+for my $module (@modules) {
+    next if !defined $module;
+
+    my $module_name = $module->{name};
+    my $dist = $module2dist{$module_name};
+    my $sections = $module->{sections};
 
     for my $sec (@$sections) {
         if ($sec->{title} =~ / \Q$section_pat\E /x) {
@@ -259,7 +281,6 @@ for my $module (@modules) {
             exit;
         }
     }
-
 }
 
 die "Documentation for section pattern \"$section_pat\" not found.\n";
@@ -273,12 +294,14 @@ sub find_module {
 
     for my $r (@dists) {
         if ($r->{dist} eq $pat) {
+            #warn "Hit dist!";
             $hit = $r;
             $name = $pat;
             last;
         }
 
         if (defined $r->{modules} && $r->{modules}{$pat}) {
+            #warn "Hit module!";
             $hit = $r;
             $name = $pat;
             last;
@@ -305,6 +328,7 @@ sub find_module {
 
     for my $r (@dists) {
         if ($r->{dist} =~ / ^ \Q$pat\E/x) {
+            #warn "Hit dist prefix!";
             $hit = $r;
             $name = $r->{dist};
             last;
@@ -315,7 +339,7 @@ sub find_module {
             for my $module (keys %$modules) {
                 if ($module =~ / ^ \Q$pat\E /x) {
                     $hit = $r;
-                    $name = $r->{dist};
+                    $name = $module;
                     last;
                 }
             }
@@ -395,13 +419,16 @@ sub find_module {
 sub process_section_hit {
     my ($dist, $section, $module_name) = @_;
 
-    my $full_dist_name = $dist->{dist};
+    my $dist_name = $dist->{dist};
     my $dist_ver = $dist->{version};
+    my $full_dist_name;
     if (defined $dist_ver) {
-        $full_dist_name .= " $dist_ver";
+        $full_dist_name = "$dist_name $dist_ver";
+    } else {
+        $full_dist_name = $dist_name;
     }
 
-    my $podfile = "$poddir/$module_name.pod";
+    my $podfile = "$poddir/$dist_name/$module_name.pod";
     open my $in, $podfile
         or die "Cannot open $podfile for reading: $!\n";
 
@@ -433,8 +460,8 @@ sub process_section_hit {
         exec("pod2text -u $tmpfile | less -n");
     }
 
-    exec("pod2man -u -c 'OpenResty Documentation' "
-          . "-d '$full_dist_name' -r -s 7 -n '$module_name' "
+    exec("pod2man -u -c '$full_dist_name' "
+          . " -r -s 7 -n '$module_name' "
           . "$tmpfile | groff -Tascii -Wbreak -mandoc | less -n");
 }
 
@@ -442,13 +469,17 @@ sub process_module_hit {
     my ($hit, $name) = @_;
 
     #warn "Found $name";
-    my $full_dist_name = $hit->{dist};
+    my $dist_name = $hit->{dist};
     my $dist_ver = $hit->{version};
+    my $full_dist_name;
     if (defined $dist_ver) {
-        $full_dist_name .= " $dist_ver";
+        $full_dist_name = "$dist_name $dist_ver";
+
+    } else {
+        $full_dist_name = $dist_name;
     }
 
-    my $podfile = "$poddir/$name.pod";
+    my $podfile = "$poddir/$dist_name/$name.pod";
     if (!-f $podfile) {
         die "POD file $podfile not found.\n";
     }
@@ -457,8 +488,8 @@ sub process_module_hit {
         exec("pod2text -u $podfile | nroff -Wbreak -man | less -n");
     }
 
-    exec("pod2man -u -c 'OpenResty Documentation' "
-          . "-d '$full_dist_name' -r -s 7 -n '$name' "
+    exec("pod2man -u -c '$full_dist_name' "
+          . "-r -s 7 -n '$name' "
           . "$podfile | groff -Tascii -mandoc -Wbreak | less -n");
 }
 

@@ -8,6 +8,7 @@ use File::Find ();
 use Cwd qw( cwd );
 use File::Spec ();
 use File::Copy qw( copy );
+use File::Path qw( make_path );
 use bytes ();
 
 my $indir = shift
@@ -33,11 +34,10 @@ my $dist_ver = $1;
 my @aliases = gen_aliases($indir, $dist_name);
 #print "aliases: @aliases\n";
 
-my $poddir = "$FindBin::Bin/../pod";
+my $poddir = "$FindBin::Bin/../pod/$dist_name";
 
 if (!-d $poddir) {
-    mkdir $poddir
-        or die "failed to create $poddir: $!\n";
+    make_path($poddir);
 }
 
 my @dist_modules;
