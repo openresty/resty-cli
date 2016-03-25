@@ -166,7 +166,7 @@ if ($module_pat) {
 
     my ($hit_dist, $hit_module_name) = find_module($module_pat);
 
-    if (defined $hit_dist) {
+    if (defined $hit_dist && !$section_pat) {
         process_module_hit($hit_dist, $hit_module_name);
         exit;
     }
@@ -430,12 +430,12 @@ sub process_section_hit {
     close $tmp;
 
     if (!$interactive) {
-        exec("pod2text -u $tmpfile | nroff -Wbreak -man | less -n");
+        exec("pod2text -u $tmpfile | less -n");
     }
 
     exec("pod2man -u -c 'OpenResty Documentation' "
           . "-d '$full_dist_name' -r -s 7 -n '$module_name' "
-          . "$tmpfile | nroff -Wbreak -man | less -n");
+          . "$tmpfile | groff -Tascii -Wbreak -mandoc | less -n");
 }
 
 sub process_module_hit {
@@ -459,7 +459,7 @@ sub process_module_hit {
 
     exec("pod2man -u -c 'OpenResty Documentation' "
           . "-d '$full_dist_name' -r -s 7 -n '$name' "
-          . "$podfile | nroff -Wbreak -man | less -n");
+          . "$podfile | groff -Tascii -mandoc -Wbreak | less -n");
 }
 
 sub shell {

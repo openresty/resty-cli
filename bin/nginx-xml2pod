@@ -58,14 +58,14 @@ sub process_xml_file {
         if (/ \G < \s* article ( (?: \s+ \w+ \s* = \s* " .*? " )* ) > \s* /gcxms) {
             my $attrs = parse_attrs($1);
             #warn "article: ", Dumper($attrs);
-            $pod .= "\n=head1 Name\n";
+            $pod .= "\n=head1 Name\n\n";
 
             my $title = $attrs->{name};
             if (defined $title) {
-                $pod .= "\n$name - $title\n";
+                $pod .= "\n$name - $title\n\n";
 
             } else {
-                $pod .= "\n$name\n";
+                $pod .= "\n$name\n\n";
             }
 
             next;
@@ -78,10 +78,10 @@ sub process_xml_file {
 
             my $title = $attrs->{name};
             if (defined $title) {
-                $pod .= "\n=head$level $title\n";
+                $pod .= "\n=head$level $title\n\n";
 
             } else {
-                $pod .= "\n=head$level\n";
+                $pod .= "\n=head$level\n\n";
             }
 
             $level++;
@@ -150,7 +150,12 @@ sub process_xml_file {
         }
 
         if (m{ \G < \s* (/?) \s* literal \s* > }gcxs) {
-            $pod .= '`';
+            my $closing = $1;
+            if ($closing) {
+                $pod .= ">";
+            } else {
+                $pod .= 'C<';
+            }
             next;
         }
 

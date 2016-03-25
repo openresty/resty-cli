@@ -7,6 +7,7 @@ use FindBin ();
 use File::Find ();
 use Cwd qw( cwd );
 use File::Spec ();
+use File::Copy qw( copy );
 use bytes ();
 
 my $indir = shift
@@ -21,6 +22,7 @@ $indir =~ s{/+$}{}g;
 (my $full_dist_name = $indir) =~ s{.*/}{};
 (my $dist_name = $full_dist_name) =~ s{ [-_] v? ( \d+ (?:\.\d+)* (?: rc\d+ | _\d+ )? ) $ }{}i;
 $dist_name = lc $dist_name;
+$dist_name =~ s/\.org$//;
 my $dist_ver = $1;
 
 #print "name: $full_dist_name\n";
@@ -74,33 +76,46 @@ _EOC_
 $index .= "\n";
 
 my $index_file = "resty.index";
-open my $out, ">>$index_file"
+open my $out, ">>:encoding(UTF-8)", $index_file
     or die "cannot open $index_file for appending: $!\n";
 print $out $index;
 close $out;
 
 sub wanted {
-    return unless -f $_ && m/ \. (?: md | markdown) $ /x;
-    my $mdfile = $File::Find::name;
+    return unless -f $_ && m/ \. ( md | markdown | pod ) $ /x;
+    my $ext = lc $1;
+    my $docfile = $File::Find::name;
 
-    my $name = File::Spec->abs2rel($mdfile, $indir);
+    my $name = File::Spec->abs2rel($docfile, $indir);
     return if $name =~ /^node_modules/i;
 
     $name = lc $name;
-    $name =~ s{ ^ (?: lib | src | lua ) / }{}x;
+    $name =~ s{ ^ (?: lib | src | lua | docs? ) / }{}xi;
     $name =~ s{ \. \w+ $ }{}x;
     $name =~ s{/}{.}g;
+    $name =~ s/\.org$//;
 
     return if length($name) == 1;
 
-    #warn $name;
-    #warn "wanted: $File::Find::dir $File::Find::name $_\n";
-    if ($name =~ / ^ README $ /xi) {
-        $name = $dist_name;
-    }
+    my $podfile;
 
-    my $podfile = "$poddir/$name.pod";
-    shell("$FindBin::Bin/md2pod.pl -o $podfile $mdfile");
+    if ($ext eq 'pod') {
+        $podfile = "$poddir/$name.pod";
+        copy($docfile, $podfile)
+            or die "cannot copy $docfile to $podfile: $!\n";
+
+    } else {
+        my $mdfile = $docfile;
+
+        #warn $name;
+        #warn "wanted: $File::Find::dir $File::Find::name $_\n";
+        if ($name =~ / ^ README $ /xi) {
+            $name = $dist_name;
+        }
+
+        $podfile = "$poddir/$name.pod";
+        shell("$FindBin::Bin/md2pod.pl -o $podfile $mdfile");
+    }
 
     my $dist_module = process_pod($podfile, $name);
 
