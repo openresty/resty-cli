@@ -166,7 +166,7 @@ if ($module_pat) {
 
     my ($hit_dist, $hit_module_name) = find_module($module_pat);
 
-    if (!$hit_dist) {
+    if (defined $hit_dist) {
         process_module_hit($hit_dist, $hit_module_name);
         exit;
     }
@@ -285,6 +285,7 @@ sub find_module {
         }
 
         if (defined $r->{aliases} && $r->{aliases}{$pat}) {
+            #warn "HIT dist alias!";
             $hit = $r;
             $name = $r->{dist};
             last;
@@ -293,6 +294,7 @@ sub find_module {
 
     if (defined $hit) {
         if (!defined $hit->{modules} || !$hit->{modules}{$name}) {
+            #warn "HERE";
             die "No documentation found for module $pat.\n";
         }
 
