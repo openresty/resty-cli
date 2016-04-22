@@ -215,7 +215,8 @@ sub write_user_files ($) {
             if ($path =~ /(.*)\//) {
                 my $dir = $1;
                 if (! -d $dir) {
-                    make_path($dir) or bail_out "$name - Cannot create directory ", $dir;
+                    make_path($dir)
+                        or bail_out "$name - Cannot create directory ", $dir;
                 }
             }
 
