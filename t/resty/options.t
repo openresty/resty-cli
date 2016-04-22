@@ -58,7 +58,10 @@ Options:
     --valgrind-opts     Pass extra options to valgrind
 
 For bug reporting instructions, please see:
-<http://openresty.org/#Community>
+
+    <https://openresty.org/en/community.html>
+
+Copyright (C) Yichun Zhang (agentzh). All rights reserved.
 --- err
 --- ret: 0
 
