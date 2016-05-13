@@ -28,7 +28,17 @@ if (!$section_pat && !$module_pat) {
 my $interactive = (-t STDOUT);
 my $pager = $ENV{RESTYDOC_PAGER} || 'less -nR';
 
-my $index_file = File::Spec->canonpath("$FindBin::Bin/../resty.index");
+my $index_file = "$FindBin::Bin/../resty.index";
+{
+    if (!-f $index_file) {
+        my $f = "$FindBin::Bin/resty.index";
+        if (-f $f) {
+            $index_file = $f;
+        }
+    }
+}
+
+$index_file = File::Spec->canonpath($index_file);
 open my $in, $index_file
     or die "cannot open $index_file for reading: $!\n";
 
