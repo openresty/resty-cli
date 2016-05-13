@@ -382,7 +382,7 @@ sub process_xml_file {
             next;
         }
 
-        if (m{ \G < \s* para \s* > }gcxs) {
+        if (m{ \G < \s* para \b .*? \s* > }gcxs) {
             $pod .= "\n";
             next;
         }
