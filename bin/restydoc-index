@@ -9,7 +9,19 @@ use Cwd qw( cwd );
 use File::Spec ();
 use File::Copy qw( copy );
 use File::Path qw( make_path );
+use Getopt::Long qw( GetOptions );
 use bytes ();
+
+GetOptions(
+    "outdir=s" => \(my $outdir),
+) or die "Usage: $0 [--outdir DIR] DIR\n";
+
+if (!defined $outdir) {
+    $outdir = "$FindBin::Bin/..";
+
+} else {
+    $outdir = File::Spec->rel2abs($outdir);
+}
 
 my $indir = shift
     or die "no input project directory name specified.\n";
@@ -17,6 +29,8 @@ my $indir = shift
 if (!-d $indir) {
     die "input directory $indir not found.\n";
 }
+
+$indir = File::Spec->rel2abs($indir);
 
 $indir =~ s{/+$}{}g;
 
@@ -34,7 +48,8 @@ my $dist_ver = $1;
 my @aliases = gen_aliases($indir, $dist_name);
 #print "aliases: @aliases\n";
 
-my $poddir = "$FindBin::Bin/../pod/$dist_name";
+my $poddir = "$outdir/pod/$dist_name";
+#warn "poddir: $poddir";
 
 if (!-d $poddir) {
     make_path($poddir);
@@ -75,7 +90,7 @@ _EOC_
 
 $index .= "\n";
 
-my $index_file = "resty.index";
+my $index_file = "$outdir/resty.index";
 open my $out, ">>:encoding(UTF-8)", $index_file
     or die "cannot open $index_file for appending: $!\n";
 print $out $index;
@@ -206,12 +221,14 @@ sub process_pod {
         $prev_level = $level;
     }
 
-    for (my $l = $prev_level; $l >= 1; $l--) {
-        my $s = $levels{$l};
-        next if !defined $s;
-        #warn "setting to...";
-        $s->{to} = $final_pos;
-        delete $levels{$l};
+    if (defined $prev_level) {
+        for (my $l = $prev_level; $l >= 1; $l--) {
+            my $s = $levels{$l};
+            next if !defined $s;
+            #warn "setting to...";
+            $s->{to} = $final_pos;
+            delete $levels{$l};
+        }
     }
 
     if (%levels) {
