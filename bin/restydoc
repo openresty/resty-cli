@@ -26,6 +26,7 @@ if (!$section_pat && !$module_pat) {
 }
 
 my $interactive = (-t STDOUT);
+my $pager = $ENV{RESTYDOC_PAGER} || 'less -nR';
 
 my $index_file = File::Spec->canonpath("$FindBin::Bin/../resty.index");
 open my $in, $index_file
@@ -458,12 +459,12 @@ sub process_section_hit {
     close $tmp;
 
     if (!$interactive) {
-        exec("pod2text -u $tmpfile | less -n");
+        exec("pod2text -u $tmpfile");
     }
 
     exec("pod2man -u -c '$full_dist_name' "
           . " -r -s 7 -n '$module_name' "
-          . "$tmpfile | groff -Kutf8 -Tutf8 -mandoc -Wbreak | less -n");
+          . "$tmpfile | groff -Kutf8 -Tutf8 -mandoc -Wbreak | $pager");
 }
 
 sub process_module_hit {
@@ -486,12 +487,12 @@ sub process_module_hit {
     }
 
     if (!$interactive) {
-        exec("pod2text -u $podfile | less -n");
+        exec("pod2text -u $podfile");
     }
 
     exec("pod2man -u -c '$full_dist_name' "
           . "-r -s 7 -n '$name' "
-          . "$podfile | groff -Kutf8 -Tutf8 -mandoc -Wbreak | less -n");
+          . "$podfile | groff -Kutf8 -Tutf8 -mandoc -Wbreak | $pager");
 }
 
 sub shell {
