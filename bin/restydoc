@@ -462,9 +462,10 @@ sub process_section_hit {
         exec("pod2text -u $tmpfile");
     }
 
+    my $groff_cmd = get_groff_cmd();
     exec("pod2man -u -c '$full_dist_name' "
           . " -r -s 7 -n '$module_name' "
-          . "$tmpfile | groff -Kutf8 -Tutf8 -mandoc -Wbreak | $pager");
+          . "$tmpfile | $groff_cmd | $pager");
 }
 
 sub process_module_hit {
@@ -490,9 +491,18 @@ sub process_module_hit {
         exec("pod2text -u $podfile");
     }
 
+    my $groff_cmd = get_groff_cmd();
     exec("pod2man -u -c '$full_dist_name' "
           . "-r -s 7 -n '$name' "
-          . "$podfile | groff -Kutf8 -Tutf8 -mandoc -Wbreak | $pager");
+          . "$podfile | $groff_cmd | $pager");
+}
+
+sub get_groff_cmd {
+    my $cmd = "groff -Kutf8 -Tutf8 -mandoc -Wbreak";
+    if (system("echo '=head1 NAME' | pod2man | $cmd > /dev/null 2>&1") == 0) {
+        return $cmd;
+    }
+    return "groff -Tascii -mandoc -Wbreak";
 }
 
 sub shell {
