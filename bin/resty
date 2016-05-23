@@ -32,10 +32,10 @@ sub resolve_includes {
 
 my @all_args = @ARGV;
 
-my (@http_includes, @main_includes);
+my (@http_includes, @main_includes, @src_a);
 
 GetOptions("c=i",             \(my $conns_num),
-           "e=s",             \(my $src),
+           "e=s",             \@src_a,
            "h|help",          \(my $help),
            "http-include=s",  \@http_includes,
            "I=s@",            \(my $Inc),
@@ -47,6 +47,11 @@ GetOptions("c=i",             \(my $conns_num),
 
            "V",               \(my $version))
    or die usage(1);
+
+my $src;
+if (@src_a) {
+    $src = join('; ', @src_a);
+}
 
 if ($help) {
     usage(0);
@@ -96,10 +101,9 @@ if (defined $Inc) {
 _EOC_
 }
 
-my $luafile;
-if (!defined $src) {
-    $luafile = shift
-        or die qq{No Lua input file nor -e "" option specified.\n};
+my $luafile = shift;
+if (!defined $src and !defined $luafile) {
+    die qq{Neither Lua input file nor -e "" option specified.\n};
 }
 
 my $conns = $conns_num || 64;
@@ -150,20 +154,36 @@ mkdir $logs_dir or die "failed to mkdir $logs_dir: $!";
 my $conf_dir = File::Spec->catfile($prefix_dir, "conf");
 mkdir $conf_dir or die "failed to mkdir $conf_dir: $!";
 
-my $chunk_name;
+my $inline_lua = '';
+my $quoted_luafile;
 if (defined $src) {
-    $luafile = File::Spec->catfile($conf_dir, "a.lua");
-    open my $out, ">$luafile"
-        or die "Cannot open $luafile for writing: $!\n";
+    my $file = File::Spec->catfile($conf_dir, "a.lua");
+    open my $out, ">$file"
+        or die "Cannot open $file for writing: $!\n";
     print $out $src;
     close $out;
-    $chunk_name = "=(command line -e)";
+    my $chunk_name = "=(command line -e)";
+    $quoted_luafile = quote_as_lua_str($file);
 
-} else {
-    $chunk_name = "\@$luafile";
+    $inline_lua = <<"_EOC_";
+                local fname = $quoted_luafile
+                local f = assert(io.open(fname, "r"))
+                local chunk = f:read("*a")
+                local inline_gen = assert(loadstring(chunk, "$chunk_name"))
+_EOC_
 }
 
-my $quoted_luafile = quote_as_lua_str($luafile);
+my $file_lua = '';
+if (defined $luafile) {
+    my $chunk_name = "\@$luafile";
+    $quoted_luafile = quote_as_lua_str($luafile);
+    $file_lua = <<"_EOC_";
+                local fname = $quoted_luafile
+                local f = assert(io.open(fname, "r"))
+                local chunk = f:read("*a")
+                local file_gen = assert(loadstring(chunk, "$chunk_name"))
+_EOC_
+}
 
 my @user_args =  @ARGV;
 my $args = gen_lua_code_for_args(\@user_args, \@all_args);
@@ -172,10 +192,13 @@ my $loader = <<_EOC_;
             local gen
             do
                 $args
-                local fname = $quoted_luafile
-                local f = assert(io.open(fname, "r"))
-                local chunk = f:read("*a")
-                gen = assert(loadstring(chunk, "$chunk_name"))
+$inline_lua
+$file_lua
+
+                gen = function()
+                  if inline_gen then inline_gen() end
+                  if file_gen then file_gen() end
+                end
             end
 _EOC_
 

@@ -185,3 +185,24 @@ print("bar: ", os.getenv("bar"))
 foo: 32
 bar: 56
 --- err
+
+
+
+=== TEST 12: multiple -e options
+--- opts: -e 'print(1)' -e 'print(2)'
+--- out
+1
+2
+--- err
+
+
+
+=== TEST 13: multiple -e options with file
+--- opts: -e 'print(1)' -e 'print(2)'
+--- src
+print(3)
+--- out
+1
+2
+3
+--- err
