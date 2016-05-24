@@ -42,9 +42,7 @@ GetOptions("c=i",             \(my $conns_num),
            "main-include=s",  \@main_includes,
            "nginx=s",         \(my $nginx_path),
            "valgrind",        \(my $use_valgrind),
-
            "valgrind-opts=s", \(my $valgrind_opts),
-
            "V",               \(my $version))
    or die usage(1);
 
@@ -349,14 +347,15 @@ _EOC_
 
 close $out;
 
-my $cmd = "$nginx_path -p $prefix_dir/ -c conf/nginx.conf";
+my @cmd = ($nginx_path, '-p', "$prefix_dir/", '-c', "conf/nginx.conf");
 
 if ($use_valgrind) {
-    my $opts = '';
+    my @new = ('valgrind');
     if ($valgrind_opts) {
-        $opts .= " $valgrind_opts";
+        $valgrind_opts =~ s/^\s+|\s+$//g;
+        push @new, split /\s+/, $valgrind_opts;
     }
-    $cmd = "valgrind$opts $cmd";
+    unshift @cmd, @new;
 }
 
 my $child_pid;
@@ -376,9 +375,9 @@ if (!defined $pid) {
 }
 
 if ($pid == 0) {  # child process
-    #warn "exec $cmd...";
-    exec($nginx_path, "-p", "$prefix_dir/", "-c", "conf/nginx.conf")
-        or die "Failed to run command \"$cmd\": $!\n";
+    #warn "exec @cmd...";
+    exec(@cmd)
+        or die "Failed to run command \"@cmd\": $!\n";
 
 } else {
     $child_pid = $pid;
