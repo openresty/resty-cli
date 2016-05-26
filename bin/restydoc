@@ -514,7 +514,7 @@ sub process_module_hit {
     }
 
     if ($on_win32) {
-        exec("pod2text -u $podfile | $pager");
+        exec("pod2text $podfile | $pager");
     }
 
     my $groff_cmd = get_groff_cmd();
