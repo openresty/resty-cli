@@ -477,7 +477,7 @@ sub process_section_hit {
     close $tmp;
 
     if (!$interactive) {
-        exec("pod2text -u $tmpfile");
+        exec("pod2text $tmpfile");
     }
 
     if ($on_win32) {
@@ -510,7 +510,7 @@ sub process_module_hit {
     }
 
     if (!$interactive) {
-        exec("pod2text -u $podfile");
+        exec("pod2text $podfile");
     }
 
     if ($on_win32) {
