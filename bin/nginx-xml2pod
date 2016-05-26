@@ -561,11 +561,11 @@ sub process_table {
     my $s = shift;
     my @rows;
     my @col_w;
-    while ($s =~ m{ < \s* tr .*? > (.*) < \s* / \s* tr \s* >}gx) {
+    while ($s =~ m{ < \s* tr .*? > (.*?) < \s* / \s* tr \s* >}gx) {
         my $row_s = $1;
         my @cols;
         my $col_id = 0;
-        while ($row_s =~ m{< \s* td .*? > (.*) < \s* / \s* td \s* >}gx) {
+        while ($row_s =~ m{< \s* td .*? > (.*?) < \s* / \s* td \s* >}gx) {
             my $fld = decode_xml($1);
             push @cols, $fld;
             my $len = length $fld;
