@@ -114,6 +114,10 @@ sub wanted {
 
     my $podfile;
 
+    if ($name =~ / ^ (?: README | index ) $ /xi) {
+        $name = $dist_name;
+    }
+
     if ($ext eq 'pod') {
         $podfile = "$poddir/$name.pod";
         copy($docfile, $podfile)
@@ -124,10 +128,6 @@ sub wanted {
 
         #warn $name;
         #warn "wanted: $File::Find::dir $File::Find::name $_\n";
-        if ($name =~ / ^ (?: README | index ) $ /xi) {
-            $name = $dist_name;
-        }
-
         $podfile = "$poddir/$name.pod";
         shell("$FindBin::Bin/md2pod.pl -o $podfile $mdfile");
     }
