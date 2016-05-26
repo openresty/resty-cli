@@ -124,7 +124,7 @@ sub wanted {
 
         #warn $name;
         #warn "wanted: $File::Find::dir $File::Find::name $_\n";
-        if ($name =~ / ^ README $ /xi) {
+        if ($name =~ / ^ (?: README | index ) $ /xi) {
             $name = $dist_name;
         }
 
