@@ -495,8 +495,8 @@ sub process_section_hit {
 
     print $tmp $pod;
 
-    if ($pod =~ /\A\s*=item/s) {
-        print $tmp "=back\n";
+    if ($pod =~ /\A\s*=item/s && $pod !~ /=back\s*\z/s) {
+        print $tmp "\n\n=back\n";
     }
 
     close $tmp;
