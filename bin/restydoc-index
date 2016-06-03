@@ -80,6 +80,11 @@ if (@dist_modules) {
 module $module->{name}
 _EOC_
 
+        my @aliases = gen_aliases(undef, $module->{name});
+        if (@aliases) {
+            $index .= "  aliases @aliases\n";
+        }
+
         my $sections = $module->{sections};
         if (defined $sections) {
             for my $sec (@$sections) {
@@ -138,6 +143,19 @@ sub wanted {
     push @dist_modules, $dist_module;
 }
 
+sub strip_pod_tags {
+    my $pod = shift;
+    if ($pod =~ /[<>]/) {
+        #warn $pod;
+        $pod =~ s/\b[E]<lt>/&lt;/g;
+        $pod =~ s/\b[E]<gt>/&gt;/g;
+        while ($pod =~ s/\b[CFBI]<([^<>]*)>/$1/g) {}
+        $pod =~ s/\&lt;/</g;
+        $pod =~ s/\&gt;/>/g;
+    }
+    $pod;
+}
+
 sub process_pod {
     my ($infile, $name) = @_;
 
@@ -182,17 +200,42 @@ sub process_pod {
         die "cannot open $infile for reading: $!\n";
 
     my @sections;
+    my $level;
     while (<$in>) {
         if (/ ^ =head (\d+) \s+ (\S.*) /mx) {
-            my $level = $1;
+            $level = $1;
             (my $title = $2) =~ s/\s+$//;
+            $title = strip_pod_tags($title);
             $title = lc $title;
+            next unless $title =~ /[a-z]+/;
             my $len = bytes::length($_);
             my $pos = tell($in) - $len;
             my $sec = {
                 title => $title,
                 from => $pos,
                 level => $level,
+            };
+            push @sections, $sec;
+            next;
+        }
+
+        if (/ ^ =item \s+ (\S.*) /mx) {
+            (my $title = $1) =~ s/\s+$//;
+
+            next unless defined $level;
+
+            $title = strip_pod_tags($title);
+            $title = lc $title;
+
+            next unless $title =~ /[a-z]+/;
+
+            #warn "section $title";
+            my $len = bytes::length($_);
+            my $pos = tell($in) - $len;
+            my $sec = {
+                title => $title,
+                from => $pos,
+                level => $level + 1,
             };
             push @sections, $sec;
         }
@@ -256,30 +299,41 @@ sub gen_aliases {
     my ($indir, $name) = @_;
 
     my @aliases;
-    if ($name =~ s/-nginx-module$//) {
-        $name =~ s/-/_/g;
-        $name = "ngx_" . $name;
-        push @aliases, $name;
-    }
+    my $alias = $name;
+    if ($alias =~ s/-nginx-module$//) {
+        $alias =~ s/-/_/g;
+        $alias = "ngx_" . $alias;
+        push @aliases, $alias;
 
-    if ($name =~ / ^ lua (?: - \w+ )+ $ /x) {
-        $name =~ s/^lua-//;
-        $name =~ s/-/./g;
-        push @aliases, $name;
-    }
+    } else {
+        $alias = $name;
+        if ($alias =~ s/^ngx_http_(\w+)_module$/ngx_$1/) {
+            push @aliases, $alias;
 
-    my $config_file = "$indir/config";
-    if (-f $config_file) {
-        open my $in, $config_file
-            or die "cannot open $config_file for reading: $!\n";
-        while (<$in>) {
-            if (/ \b ngx_addon_name = .*? (\w+) /x) {
-                my $addon = lc $1;
-                push @aliases, $addon;
-                last;
+        } else {
+            $alias = $name;
+            if ($alias =~ / ^ lua (?: - \w+ )+ $ /x) {
+                $alias =~ s/^lua-//;
+                $alias =~ s/-/./g;
+                push @aliases, $alias;
             }
         }
-        close $in;
+    }
+
+    if (defined $indir) {
+        my $config_file = "$indir/config";
+        if (-f $config_file) {
+            open my $in, $config_file
+                or die "cannot open $config_file for reading: $!\n";
+            while (<$in>) {
+                if (/ \b ngx_addon_name = .*? (\w+) /x) {
+                    my $addon = lc $1;
+                    push @aliases, $addon;
+                    last;
+                }
+            }
+            close $in;
+        }
     }
 
     return @aliases;

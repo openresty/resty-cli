@@ -67,6 +67,8 @@ while (<$in>) {
             undef $modules[$old_module->{index}];
         }
 
+        undef $dist;
+
         $modules{$name} = $module;
         push @modules, $module;
         next;
@@ -123,12 +125,24 @@ while (<$in>) {
     if (/ ^ \s+ aliases \s+ (\S.*) $/x) {
         (my $s = $1) =~ s/\s+$//;
         my @elems = split /\s+/, $s;
-        if (!defined $dist) {
+        if (!defined $dist && !defined $module) {
             die "ERROR: $index_file: line $.: unexpected aliases line.\n";
         }
         if (@elems) {
-            my %aliases = map { ($_ => 1) } @elems;
-            $dist->{aliases} = \%aliases;
+            if (defined $dist) {
+                my %aliases = map { ($_ => 1) } @elems;
+                $dist->{aliases} = \%aliases;
+            } else {
+                for my $alias (@elems) {
+                    if (!defined $modules{$alias}) {
+                        #warn "add module alias $alias for $module->{name}";
+                        $modules{$alias} = $module;
+
+                        my $dist = $module2dist{$module->{name}};
+                        $dist->{modules}{$alias} = $module;
+                    }
+                }
+            }
         }
         next;
     }
@@ -322,7 +336,8 @@ sub find_module {
         if (defined $r->{modules} && $r->{modules}{$pat}) {
             #warn "Hit module!";
             $hit = $r;
-            $name = $pat;
+            my $module = $modules{$pat};
+            $name = $module->{name};
             last;
         }
 
@@ -472,8 +487,18 @@ sub process_section_hit {
 
     my ($tmp, $tmpfile) = tempfile( CLEANUP => 1, SUFFIX => '.pod' );
 
-    print $tmp "=encoding utf-8\n\n";
+    print $tmp "=encoding utf8\n\n";
+
+    if ($pod =~ /\A\s*=item/s) {
+        print $tmp "=over\n\n";
+    }
+
     print $tmp $pod;
+
+    if ($pod =~ /\A\s*=item/s) {
+        print $tmp "=back\n";
+    }
+
     close $tmp;
 
     if (!$interactive) {
