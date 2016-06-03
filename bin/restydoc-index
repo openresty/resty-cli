@@ -70,6 +70,7 @@ if (@aliases) {
 }
 
 if (@dist_modules) {
+    @dist_modules = sort { lc($a->{name}) cmp lc($b->{name}) } @dist_modules;
     my @names = map { lc($_->{name}) } @dist_modules;
     $index .= "  modules " . join(" ", @names) . "\n";
 
