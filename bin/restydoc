@@ -513,7 +513,7 @@ sub process_section_hit {
     }
 
     if ($on_win32) {
-        exec("pod2text $podfile | $pager");
+        exec("pod2text $tmpfile | $pager");
     }
 
     my $groff_cmd = get_groff_cmd();
