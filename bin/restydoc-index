@@ -298,6 +298,8 @@ sub shell {
 sub gen_aliases {
     my ($indir, $name) = @_;
 
+    $name =~ s/-\d+\.\d+.*//g;
+
     my @aliases;
     my $alias = $name;
     if ($alias =~ s/-nginx-module$//) {
