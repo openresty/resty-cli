@@ -3,17 +3,24 @@
 use strict;
 use warnings;
 
+our $VERSION = '0.11';
+
 use Getopt::Std qw( getopts );
 use File::Spec ();
 use FindBin ();
 use File::Temp qw( tempfile );
 
 my %opts;
-getopts("hs:", \%opts)
+getopts("vhs:", \%opts)
     or usage(1);
 
 if ($opts{h}) {
     usage(0);
+}
+
+if ($opts{v}) {
+    print "restydoc $VERSION\n";
+    exit;
 }
 
 my $section_pat = $opts{s};

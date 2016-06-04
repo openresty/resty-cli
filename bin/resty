@@ -9,7 +9,7 @@
 use strict;
 use warnings;
 
-our $VERSION = '0.10';
+our $VERSION = '0.11';
 
 use File::Spec ();
 use FindBin ();
@@ -43,7 +43,7 @@ GetOptions("c=i",             \(my $conns_num),
            "nginx=s",         \(my $nginx_path),
            "valgrind",        \(my $use_valgrind),
            "valgrind-opts=s", \(my $valgrind_opts),
-           "V",               \(my $version))
+           "V|v",             \(my $version))
    or die usage(1);
 
 my $src;
