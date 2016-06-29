@@ -147,8 +147,10 @@ sub strip_pod_tags {
     my $pod = shift;
     if ($pod =~ /[<>]/) {
         #warn $pod;
-        $pod =~ s/\b[E]<lt>/&lt;/g;
-        $pod =~ s/\b[E]<gt>/&gt;/g;
+        $pod =~ s/E<lt>/&lt;/g;
+        $pod =~ s/E<gt>/&gt;/g;
+        $pod =~ s/E<middot>/./g;
+        $pod =~ s/E<sol>/\//g;
         while ($pod =~ s/\b[CFBI]<([^<>]*)>/$1/g) {}
         $pod =~ s/\&lt;/</g;
         $pod =~ s/\&gt;/>/g;
@@ -207,6 +209,8 @@ sub process_pod {
             (my $title = $2) =~ s/\s+$//;
             $title = strip_pod_tags($title);
             $title = lc $title;
+            $title =~ s/^\s*\d+(\.\d+)*\s+-\s+//;
+
             next unless $title =~ /[a-z]+/;
             my $len = bytes::length($_);
             my $pos = tell($in) - $len;
@@ -226,6 +230,8 @@ sub process_pod {
 
             $title = strip_pod_tags($title);
             $title = lc $title;
+            $title =~ s/^\s*\*\s*//;
+            $title =~ s/["']//g;
 
             next unless $title =~ /[a-z]+/;
 
