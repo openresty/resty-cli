@@ -559,7 +559,7 @@ sub process_module_hit {
 
 sub get_groff_cmd {
     my $cmd = "groff -Kutf8 -Tutf8 -mandoc -Wbreak";
-    if (system("echo '=head1 NAME' | pod2man | $cmd > /dev/null 2>&1") == 0) {
+    if (system("echo '=head1 NAME' | pod2man --errors none | $cmd > /dev/null 2>&1") == 0) {
         return $cmd;
     }
     return "groff -Tascii -mandoc -Wbreak";
