@@ -65,9 +65,9 @@ if (!$nginx_path) {
             $ext = '';
         }
     }
-    $nginx_path = File::Spec->catfile($FindBin::Bin, "..", "nginx", "sbin", "nginx$ext");
+    $nginx_path = File::Spec->catfile($FindBin::RealBin, "..", "nginx", "sbin", "nginx$ext");
     if (!-f $nginx_path) {
-        $nginx_path = File::Spec->catfile($FindBin::Bin, "nginx$ext");
+        $nginx_path = File::Spec->catfile($FindBin::RealBin, "nginx$ext");
         if (!-f $nginx_path) {
             $nginx_path = "nginx";  # find in PATH
         }

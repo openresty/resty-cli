@@ -43,10 +43,10 @@ if (!defined $pager) {
     }
 }
 
-my $index_file = "$FindBin::Bin/../resty.index";
+my $index_file = "$FindBin::RealBin/../resty.index";
 {
     if (!-f $index_file) {
-        my $f = "$FindBin::Bin/resty.index";
+        my $f = "$FindBin::RealBin/resty.index";
         if (-f $f) {
             $index_file = $f;
         }
@@ -179,7 +179,7 @@ if (!@dists) {
     die "ERROR: $index_file is empty.\n";
 }
 
-my $poddir = "$FindBin::Bin/../pod";
+my $poddir = "$FindBin::RealBin/../pod";
 
 if ($section_pat) {
     $section_pat = lc $section_pat;

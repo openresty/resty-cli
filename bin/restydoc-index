@@ -17,7 +17,7 @@ GetOptions(
 ) or die "Usage: $0 [--outdir DIR] DIR\n";
 
 if (!defined $outdir) {
-    $outdir = "$FindBin::Bin/..";
+    $outdir = "$FindBin::RealBin/..";
 
 } else {
     $outdir = File::Spec->rel2abs($outdir);
@@ -135,7 +135,7 @@ sub wanted {
         #warn $name;
         #warn "wanted: $File::Find::dir $File::Find::name $_\n";
         $podfile = "$poddir/$name.pod";
-        shell("$FindBin::Bin/md2pod.pl -o $podfile $mdfile");
+        shell("$FindBin::RealBin/md2pod.pl -o $podfile $mdfile");
     }
 
     my $dist_module = process_pod($podfile, $name);
