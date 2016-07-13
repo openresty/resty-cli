@@ -517,7 +517,9 @@ sub process_section_hit {
     }
 
     my $groff_cmd = get_groff_cmd();
-    my $cmd = "pod2man -u -c '$full_dist_name' "
+    my $pod2man_cmd = get_pod2man_cmd();
+
+    my $cmd = "$pod2man_cmd -c '$full_dist_name' "
           . " -r OpenResty -s 7 -n '$module_name' "
           . "$tmpfile | $groff_cmd | $pager";
     #warn $cmd;
@@ -552,7 +554,9 @@ sub process_module_hit {
     }
 
     my $groff_cmd = get_groff_cmd();
-    exec("pod2man -u -c '$full_dist_name' "
+    my $pod2man_cmd = get_pod2man_cmd();
+
+    exec("$pod2man_cmd -c '$full_dist_name' "
           . "-r OpenResty -s 7 -n '$name' "
           . "$podfile | $groff_cmd | $pager");
 }
@@ -563,6 +567,14 @@ sub get_groff_cmd {
         return $cmd;
     }
     return "groff -Tascii -mandoc -Wbreak";
+}
+
+sub get_pod2man_cmd {
+    my $help = `pod2man --help`;
+    if ($help =~ /^ \s+ -u \b/xm) {
+        return "pod2man -u";
+    }
+    return "pod2man";
 }
 
 sub shell {
