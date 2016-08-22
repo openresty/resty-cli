@@ -32,12 +32,13 @@ sub resolve_includes {
 
 my @all_args = @ARGV;
 
-my (@http_includes, @main_includes, @src_a);
+my (@http_includes, @main_includes, @lua_directives, @src_a);
 
 GetOptions("c=i",             \(my $conns_num),
            "e=s",             \@src_a,
            "h|help",          \(my $help),
            "http-include=s",  \@http_includes,
+           "lua-directive=s", \@lua_directives,
            "I=s@",            \(my $Inc),
            "main-include=s",  \@main_includes,
            "nginx=s",         \(my $nginx_path),
@@ -208,6 +209,7 @@ for my $var (sort keys %ENV) {
 
 my $main_include_directives = resolve_includes('main', @main_includes);
 my $http_include_directives = resolve_includes('http', @http_includes);
+my $lua_directives_list = join("\n    ", @lua_directives);
 
 my $conf_file = File::Spec->catfile($conf_dir, "nginx.conf");
 open my $out, ">$conf_file"
@@ -234,6 +236,7 @@ http {
     access_log off;
     lua_socket_log_errors off;
     resolver @nameservers;
+    $lua_directives_list
 $lua_package_path_config
     $http_include_directives
     init_by_lua '
@@ -406,6 +409,9 @@ Options:
 
     --main-include path Include the specified file in the nginx main configuration block
                         (multiple instances are supported).
+
+    --lua-directives    Include the specified lua-nginx-module directives in the http
+                        configuration block (multiple instances are supported).
 
     --nginx             Specify the nginx path (this option might be removed in the future).
     -V                  Print version numbers and nginx configurations.

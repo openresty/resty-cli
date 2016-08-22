@@ -52,6 +52,9 @@ Options:
     --main-include path Include the specified file in the nginx main configuration block
                         (multiple instances are supported).
 
+    --lua-directives    Include the specified lua-nginx-module directives in the http
+                        configuration block (multiple instances are supported).
+
     --nginx             Specify the nginx path (this option might be removed in the future).
     -V                  Print version numbers and nginx configurations.
     --valgrind          Use valgrind to run nginx
@@ -188,7 +191,36 @@ bar: 56
 
 
 
-=== TEST 12: multiple -e options
+=== TEST 12: --lua-directive option
+--- opts: '--lua-directive=lua_shared_dict dogs 12k;'
+--- src
+local dogs = ngx.shared.dogs
+dogs:set("Tom", 32)
+print(dogs:get("Tom"))
+--- out
+32
+--- err
+
+
+
+=== TEST 12: multiple --lua-directive option
+--- opts: '--lua-directive=lua_shared_dict dogs 1m;' '--lua-directive=lua_shared_dict cats 1m;'
+--- src
+local dogs = ngx.shared.dogs
+dogs:set("Tom", 32)
+print(dogs:get("Tom"))
+
+local cats = ngx.shared.cats
+dogs:set("Max", 64)
+print(dogs:get("Max"))
+--- out
+32
+64
+--- err
+
+
+
+=== TEST 13: multiple -e options
 --- opts: -e 'print(1)' -e 'print(2)'
 --- out
 1
@@ -197,7 +229,7 @@ bar: 56
 
 
 
-=== TEST 13: multiple -e options with file
+=== TEST 14: multiple -e options with file
 --- opts: -e 'print(1)' -e 'print(2)'
 --- src
 print(3)
