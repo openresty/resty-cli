@@ -30,14 +30,32 @@ sub resolve_includes {
     return join("\n", @paths);
 }
 
+sub format_directives {
+    my $name = shift;
+    my @directives = map {
+        "$name $_;";
+    } @_;
+    return join("\n", @directives);
+}
+
+sub check_option_format {
+    my ($opt_name, $regex, $opt_format, $args_ref) = @_;
+    for (@$args_ref) {
+        unless (m/$regex/) {
+            die "Invalid value for $opt_name option. Expected: $opt_format\n";
+        }
+    }
+}
+
 my @all_args = @ARGV;
 
-my (@http_includes, @main_includes, @src_a);
+my (@http_includes, @main_includes, @shdicts, @src_a);
 
 GetOptions("c=i",             \(my $conns_num),
            "e=s",             \@src_a,
            "h|help",          \(my $help),
            "http-include=s",  \@http_includes,
+           "shdict=s",        \@shdicts,
            "I=s@",            \(my $Inc),
            "main-include=s",  \@main_includes,
            "nginx=s",         \(my $nginx_path),
@@ -46,6 +64,8 @@ GetOptions("c=i",             \(my $conns_num),
            "resolve-ipv6",    \(my $resolve_ipv6),
            "V|v",             \(my $version))
    or usage(1);
+
+check_option_format('--shdict', qr/^[_a-z]+\s+\d+(?i)[km]?\z/, 'NAME SIZE', \@shdicts);
 
 my $src;
 if (@src_a) {
@@ -213,6 +233,7 @@ for my $var (sort keys %ENV) {
 
 my $main_include_directives = resolve_includes('main', @main_includes);
 my $http_include_directives = resolve_includes('http', @http_includes);
+my $lua_shared_dicts = format_directives('lua_shared_dict', @shdicts);
 
 my $conf_file = File::Spec->catfile($conf_dir, "nginx.conf");
 open my $out, ">$conf_file"
@@ -239,6 +260,7 @@ http {
     access_log off;
     lua_socket_log_errors off;
     resolver @nameservers;
+    $lua_shared_dicts
 $lua_package_path_config
     $http_include_directives
     init_by_lua_block {
@@ -418,6 +440,10 @@ Options:
                         (multiple instances are supported).
 
     --resolve-ipv6      Make the nginx resolver lookup both IPv4 and IPv6 addresses
+
+    --shdict 'NAME SIZE'
+                        Create the specified lua shared dicts in the http
+                        configuration block (multiple instances are supported).
 
     --nginx             Specify the nginx path (this option might be removed in the future).
     -V                  Print version numbers and nginx configurations.

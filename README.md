@@ -56,6 +56,10 @@ Synopsis
 
         --resolve-ipv6      Make the nginx resolver lookup both IPv4 and IPv6 addresses
 
+        --shdict 'NAME SIZE'
+                            Create the specified lua shared dicts in the http
+                            configuration block (multiple instances are supported).
+
         --nginx             Specify the nginx path (this option might be removed in the future).
         -V                  Print version numbers and nginx configurations.
         --valgrind          Use valgrind to run nginx
@@ -120,6 +124,13 @@ User command-line arguments are also passed:
 
     $ resty -e 'print(arg[1], ", ", arg[2])' hello world
     hello, world
+
+If you need to use a shared dict:
+
+    $ resty --shdict='dogs 1m' -e 'local dict = ngx.shared.dogs
+                                   dict:set("Tom", 56)
+                                   print(dict:get("Tom"))'
+    56
 
 To check version numbers:
 
