@@ -54,6 +54,9 @@ Options:
 
     --resolve-ipv6      Make the nginx resolver lookup both IPv4 and IPv6 addresses
 
+    --shdict            Create the specified lua shared dicts in the http
+                        configuration block (multiple instances are supported).
+
     --nginx             Specify the nginx path (this option might be removed in the future).
     -V                  Print version numbers and nginx configurations.
     --valgrind          Use valgrind to run nginx
@@ -190,7 +193,36 @@ bar: 56
 
 
 
-=== TEST 12: multiple -e options
+=== TEST 12: --shdict option
+--- opts: '--shdict=dogs 12k'
+--- src
+local dogs = ngx.shared.dogs
+dogs:set("Tom", 32)
+print(dogs:get("Tom"))
+--- out
+32
+--- err
+
+
+
+=== TEST 13: multiple --shdict option
+--- opts: '--shdict=dogs 1m' '--shdict=cats 1m'
+--- src
+local dogs = ngx.shared.dogs
+dogs:set("Tom", 32)
+print(dogs:get("Tom"))
+
+local cats = ngx.shared.cats
+dogs:set("Max", 64)
+print(dogs:get("Max"))
+--- out
+32
+64
+--- err
+
+
+
+=== TEST 14: multiple -e options
 --- opts: -e 'print(1)' -e 'print(2)'
 --- out
 1
@@ -199,7 +231,7 @@ bar: 56
 
 
 
-=== TEST 13: multiple -e options with file
+=== TEST 15: multiple -e options with file
 --- opts: -e 'print(1)' -e 'print(2)'
 --- src
 print(3)
@@ -211,7 +243,7 @@ print(3)
 
 
 
-=== TEST 14: multiple -e options with single quotes
+=== TEST 16: multiple -e options with single quotes
 --- opts: -e "print('1')" -e 'print(2)'
 --- out
 1
@@ -220,7 +252,7 @@ print(3)
 
 
 
-=== TEST 15: resolver has ipv6=off by default
+=== TEST 17: resolver has ipv6=off by default
 --- src
 local prefix = ngx.config.prefix()
 local conf = prefix.."conf/nginx.conf"
@@ -234,7 +266,7 @@ resolver [\s\S]* ipv6=off;
 
 
 
-=== TEST 16: --resolve-ipv6 flag enables ipv6 resolution
+=== TEST 18: --resolve-ipv6 flag enables ipv6 resolution
 --- opts: --resolve-ipv6
 --- src
 local prefix = ngx.config.prefix()
