@@ -206,3 +206,25 @@ print(3)
 2
 3
 --- err
+
+
+
+=== TEST 14: tcpsock connect() resolve /etc/hosts
+--- src
+local sock = ngx.socket.tcp()
+local ok, err = sock:connect("localhost", 9999)
+print(err)
+--- out
+connection refused
+--- err
+
+
+
+=== TEST 15: tcpsock connect() preserve resolver behavior
+--- src
+local sock = ngx.socket.tcp()
+local ok = assert(sock:connect("www.google.com", 80))
+print(ok)
+--- out
+1
+--- err

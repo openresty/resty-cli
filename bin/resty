@@ -128,6 +128,25 @@ if (!@nameservers) {
 
 #warn "@nameservers\n";
 
+my @hosts;
+
+# try to read /etc/hosts
+if (open my $in, "/etc/hosts") {
+    while (<$in>) {
+        if (/^\s*(\d+(?:\.\d+){3})(.*)$/) {
+            my $address = $1;
+            my @aliases = $2 =~ /(\w+)/g;
+            foreach my $alias (@aliases) {
+                push @hosts, "$alias = \"$address\"";
+            }
+        }
+    }
+}
+
+my $hosts = join(",\n", @hosts);
+
+#warn "$hosts";
+
 my $prefix_dir;
 if ($^O eq 'msys') {
     # to work around a bug in msys perl (at least 5.8.8 msys 64int)
@@ -233,7 +252,7 @@ $main_include_directives
 http {
     access_log off;
     lua_socket_log_errors off;
-    resolver @nameservers;
+    resolver @nameservers ipv6=off;
 $lua_package_path_config
     $http_include_directives
     init_by_lua '
@@ -291,6 +310,20 @@ $lua_package_path_config
                 return ok, err
             end
         print = ngx.say
+
+        local hosts = {
+            $hosts
+        }
+
+        local tcp = ngx.socket.tcp
+        ngx.socket.tcp = function(...)
+            local sock = tcp(...)
+            local connect = sock.connect
+            sock.connect = function(self, host, ...)
+                return connect(self, hosts[host] or host, ...)
+            end
+            return sock
+        end
 
         ngx.flush = function (...) return stdout:flush() end
         -- we cannot close stdout here due to a bug in Lua:
