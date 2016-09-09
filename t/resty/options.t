@@ -52,6 +52,8 @@ Options:
     --main-include path Include the specified file in the nginx main configuration block
                         (multiple instances are supported).
 
+    -no-ipv6            Prevents the nginx resolver to lookup IPv6 addresses
+
     --nginx             Specify the nginx path (this option might be removed in the future).
     -V                  Print version numbers and nginx configurations.
     --valgrind          Use valgrind to run nginx
@@ -214,4 +216,19 @@ print(3)
 --- out
 1
 2
+--- err
+
+
+
+=== TEST 15: --no-ipv6 flag
+--- opts: --no-ipv6
+--- src
+local prefix = ngx.config.prefix()
+local conf = prefix.."conf/nginx.conf"
+local f = assert(io.open(conf, "r"))
+local str = f:read("*a")
+f:close()
+print(str)
+--- out_like
+resolver [\s\S]* ipv6=off;
 --- err
