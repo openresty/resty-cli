@@ -43,6 +43,7 @@ GetOptions("c=i",             \(my $conns_num),
            "nginx=s",         \(my $nginx_path),
            "valgrind",        \(my $use_valgrind),
            "valgrind-opts=s", \(my $valgrind_opts),
+           "resolve-ipv6",    \(my $resolve_ipv6),
            "V|v",             \(my $version))
    or usage(1);
 
@@ -108,11 +109,15 @@ my $conns = $conns_num || 64;
 
 my @nameservers;
 
+if (!$resolve_ipv6) {
+    unshift @nameservers, "ipv6=off";
+}
+
 # try to read the nameservers used by the system resolver:
 if (open my $in, "/etc/resolv.conf") {
     while (<$in>) {
         if (/^\s*nameserver\s+(\d+(?:\.\d+){3})(?:\s+|$)/) {
-            push @nameservers, $1;
+            unshift @nameservers, $1;
             if (@nameservers > 10) {
                 last;
             }
@@ -123,7 +128,7 @@ if (open my $in, "/etc/resolv.conf") {
 
 if (!@nameservers) {
     # default to Google's open DNS servers
-    push @nameservers, "8.8.8.8", "8.8.4.4";
+    unshift @nameservers, "8.8.8.8", "8.8.4.4";
 }
 
 #warn "@nameservers\n";
@@ -411,6 +416,8 @@ Options:
 
     --main-include path Include the specified file in the nginx main configuration block
                         (multiple instances are supported).
+
+    --resolve-ipv6      Make the nginx resolver lookup both IPv4 and IPv6 addresses
 
     --nginx             Specify the nginx path (this option might be removed in the future).
     -V                  Print version numbers and nginx configurations.

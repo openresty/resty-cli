@@ -136,12 +136,20 @@ sub run_test ($) {
         is $out, $block->out, "$name - stdout eq okay";
     }
 
-    my $regex = $block->out_like;
-    if (defined $regex) {
+    my $regex;
+    if (defined $block->out_like) {
+        $regex = $block->out_like;
         if (!ref $regex) {
             $regex = qr/$regex/ms;
         }
         like $out, $regex, "$name - stdout like okay";
+
+    } elsif (defined $block->out_not_like) {
+        $regex = $block->out_not_like;
+        if (!ref $regex) {
+            $regex = qr/$regex/ms;
+        }
+        unlike $out, $regex, "$name - stdout unlike okay";
     }
 
     if (defined $block->err) {

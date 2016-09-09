@@ -52,6 +52,8 @@ Options:
     --main-include path Include the specified file in the nginx main configuration block
                         (multiple instances are supported).
 
+    --resolve-ipv6      Make the nginx resolver lookup both IPv4 and IPv6 addresses
+
     --nginx             Specify the nginx path (this option might be removed in the future).
     -V                  Print version numbers and nginx configurations.
     --valgrind          Use valgrind to run nginx
@@ -214,4 +216,33 @@ print(3)
 --- out
 1
 2
+--- err
+
+
+
+=== TEST 15: resolver has ipv6=off by default
+--- src
+local prefix = ngx.config.prefix()
+local conf = prefix.."conf/nginx.conf"
+local f = assert(io.open(conf, "r"))
+local str = f:read("*a")
+f:close()
+print(str)
+--- out_like
+resolver [\s\S]* ipv6=off;
+--- err
+
+
+
+=== TEST 16: --resolve-ipv6 flag enables ipv6 resolution
+--- opts: --resolve-ipv6
+--- src
+local prefix = ngx.config.prefix()
+local conf = prefix.."conf/nginx.conf"
+local f = assert(io.open(conf, "r"))
+local str = f:read("*a")
+f:close()
+print(str)
+--- out_not_like
+resolver [\s\S]* ipv6=off;
 --- err
