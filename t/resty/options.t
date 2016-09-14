@@ -206,3 +206,12 @@ print(3)
 2
 3
 --- err
+
+
+
+=== TEST 14: multiple -e options with single quotes
+--- opts: -e "print('1')" -e 'print(2)'
+--- out
+1
+2
+--- err

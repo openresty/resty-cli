@@ -66,7 +66,7 @@ arg -1: /tmp
 arg 0: .*?/tmp/\S+?\.lua
 arg 1: 1
 arg 2: 2
-arg 3: \"$
+arg 3: \\"$
 
 --- err
 

@@ -236,7 +236,7 @@ http {
     resolver @nameservers;
 $lua_package_path_config
     $http_include_directives
-    init_by_lua '
+    init_by_lua_block {
         local stdout = io.stdout
         local ngx_null = ngx.null
         local maxn = table.maxn
@@ -286,7 +286,7 @@ $lua_package_path_config
         ngx.say = function (...)
                 local ok, err = output(...)
                 if ok then
-                    return output("\\\\n")
+                    return output("\\n")
                 end
                 return ok, err
             end
@@ -296,16 +296,16 @@ $lua_package_path_config
         -- we cannot close stdout here due to a bug in Lua:
         ngx.eof = function (...) return true end
         ngx.exit = os.exit
-    ';
+    }
 
-    init_worker_by_lua '
+    init_worker_by_lua_block {
         local exit = os.exit
         local stderr = io.stderr
 
         local function handle_err(err)
             if err then
                 err = string.gsub(err, "^init_worker_by_lua:%d+: ", "")
-                stderr:write(err, "\\\\n")
+                stderr:write(err, "\\n")
             end
             return exit(1)
         end
@@ -341,7 +341,7 @@ $loader
         if not ok then
             return handle_err(err)
         end
-    ';
+    }
 }
 _EOC_
 
