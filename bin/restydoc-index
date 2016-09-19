@@ -5,7 +5,7 @@ use warnings;
 
 use FindBin ();
 use File::Find ();
-use Cwd qw( cwd );
+use Cwd qw( cwd realpath );
 use File::Spec ();
 use File::Copy qw( copy );
 use File::Path qw( make_path );
@@ -22,6 +22,8 @@ if (!defined $outdir) {
 } else {
     $outdir = File::Spec->rel2abs($outdir);
 }
+
+$outdir = realpath($outdir);
 
 my $indir = shift
     or die "no input project directory name specified.\n";
@@ -106,6 +108,13 @@ sub wanted {
     return unless -f $_ && m/ \. ( md | markdown | pod ) $ /x;
     my $ext = lc $1;
     my $docfile = $File::Find::name;
+
+    my $dir = File::Spec->rel2abs($File::Find::dir);
+
+    if ($dir =~ m{^\Q$outdir\E(?:/|$)}) {
+        #die "HIT!";
+        return;
+    }
 
     my $name = File::Spec->abs2rel($docfile, $indir);
     return if $name =~ /^node_modules/i;
