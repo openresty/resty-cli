@@ -313,9 +313,9 @@ $lua_package_path_config
         local ok, err = pcall(function ()
             if not ngx.config
                or not ngx.config.ngx_lua_version
-               or ngx.config.ngx_lua_version < 9011
+               or ngx.config.ngx_lua_version < 10005
             then
-                error("at least ngx_lua 0.9.12 is required")
+                error("at least ngx_lua 0.10.5 is required")
             end
 
 $loader
