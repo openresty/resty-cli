@@ -8,10 +8,11 @@ our $VERSION = '0.13';
 use Getopt::Std qw( getopts );
 use File::Spec ();
 use FindBin ();
+use Cwd qw( realpath );
 use File::Temp qw( tempfile );
 
 my %opts;
-getopts("vhs:", \%opts)
+getopts("r:vhs:", \%opts)
     or usage(1);
 
 if ($opts{h}) {
@@ -43,23 +44,33 @@ if (!defined $pager) {
     }
 }
 
-my $index_file = "$FindBin::RealBin/../resty.index";
-{
-    if (!-f $index_file) {
-        my $f = "$FindBin::RealBin/resty.index";
-        if (-f $f) {
-            $index_file = $f;
-        }
+my $root_dir = $opts{r};
+if (!$root_dir) {
+    $root_dir = "$FindBin::RealBin/..";
+}
+
+my $index_file = File::Spec->catfile($root_dir, "resty.index");
+if (!-f $index_file) {
+    if ($opts{r}) {
+        die "cannot file resty.index under the root directory $root_dir/.\n";
+    }
+
+    # for Win32 installation tree layout:
+
+    my $f = File::Spec->catfile($FindBin::RealBin, "resty.index");
+    if (-f $f) {
+        $root_dir = $FindBin::RealBin;
+        $index_file = $f;
     }
 }
 
-$index_file = File::Spec->canonpath($index_file);
+$index_file = realpath($index_file);
 open my $in, $index_file
     or die "cannot open $index_file for reading: $!\n";
 
 my ($dist, @dists, $module, %modules, @modules, %module2dist);
 while (<$in>) {
-    next if / ^ \s* $ /x;
+    next if / ^ \s* (?: \# .* )? $ /x;
 
     if (/ ^ module \s+ (\S+) \s* $/x) {
         my $name = $1;
@@ -179,7 +190,7 @@ if (!@dists) {
     die "ERROR: $index_file is empty.\n";
 }
 
-my $poddir = "$FindBin::RealBin/../pod";
+my $poddir = File::Spec->catfile($root_dir, "pod");
 
 if ($section_pat) {
     $section_pat = lc $section_pat;
@@ -469,7 +480,7 @@ sub process_section_hit {
         $full_dist_name = $dist_name;
     }
 
-    my $podfile = "$poddir/$dist_name/$module_name.pod";
+    my $podfile = File::Spec->catfile($poddir, $dist_name, "$module_name.pod");
     open my $in, $podfile
         or die "Cannot open $podfile for reading: $!\n";
 
@@ -540,7 +551,7 @@ sub process_module_hit {
         $full_dist_name = $dist_name;
     }
 
-    my $podfile = "$poddir/$dist_name/$name.pod";
+    my $podfile = File::Spec->catfile($poddir, $dist_name, "$name.pod");
     if (!-f $podfile) {
         die "POD file $podfile not found.\n";
     }
@@ -593,6 +604,11 @@ Usage:
 
 Options:
     -h              Print this help.
+
+    -r DIR          Specify the root directory of docs. Default
+                    to the OpenResty installation tree containing
+                    the current restydoc tool.
+
     -s SECTION      Specify the section name to be searched
 
 For bug reporting instructions, please see:
