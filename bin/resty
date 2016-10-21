@@ -360,13 +360,18 @@ if ($use_valgrind) {
 
 my $child_pid;
 
-sub sigint {
-    $SIG{INT} = \&sigint;
+sub forward_signal {
+    my $signame = shift;
+
     if ($child_pid) {
-        kill INT => $child_pid;
+        kill $signame => $child_pid
+            or die "failed to send $signame to process $child_pid: $!";
     }
 }
-$SIG{INT} = \&sigint;
+
+for my $sig (qw/ INT TERM QUIT HUP USR1 USR2 WINCH /) {
+    $SIG{$sig} = \&forward_signal;
+}
 
 my $pid = fork();
 
