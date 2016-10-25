@@ -87,6 +87,18 @@ sub run_test ($) {
         $cmd .= " $luafile"
     }
 
+    my $binfile;
+    if (defined $block->mock_nginx) {
+        my ($out, $binfile) = tempfile("testXXXXXX",
+                                        SUFFIX => '',
+                                        TMPDIR => 1,
+                                        UNLINK => 1);
+        print $out ($block->mock_nginx);
+        close $out;
+        chmod 0755, $binfile;
+        $cmd .= " --nginx $binfile"
+    }
+
     if (defined $args) {
         $cmd .= " $args";
     }
@@ -109,7 +121,7 @@ sub run_test ($) {
             if (!defined $block->expect_timeout) {
                 fail("$name: resty process timed out");
             }
-	} else {
+        } else {
             fail("$name: failed to run command [$cmd]: $@");
         }
     }
