@@ -44,7 +44,7 @@ GetOptions("c=i",             \(my $conns_num),
            "valgrind",        \(my $use_valgrind),
            "valgrind-opts=s", \(my $valgrind_opts),
            "V|v",             \(my $version))
-   or die usage(1);
+   or usage(1);
 
 my $src;
 if (@src_a) {
