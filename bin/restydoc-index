@@ -183,6 +183,7 @@ sub process_pod {
         if (defined $toc_level) {
             if (/ ^ =head (\d+) /x && $1 >= $toc_level) {
                 undef $toc_level;
+                $new .= $_;
                 next;
             }
 
