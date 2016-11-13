@@ -111,8 +111,8 @@ sub wanted {
 
     my $dir = File::Spec->rel2abs($File::Find::dir);
 
-    if ($dir =~ m{^\Q$outdir\E(?:/|$)}) {
-        #die "HIT!";
+    if ($dir =~ m{^\Q$poddir\E(?:/|$)}) {
+        warn "WARNING: ignoring $docfile in outdir.\n";
         return;
     }
 
@@ -144,6 +144,7 @@ sub wanted {
         #warn $name;
         #warn "wanted: $File::Find::dir $File::Find::name $_\n";
         $podfile = "$poddir/$name.pod";
+        #warn "$name => $podfile";
         shell("$FindBin::RealBin/md2pod.pl -o $podfile $mdfile");
     }
 
