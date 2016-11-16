@@ -52,7 +52,7 @@ Options:
     --main-include path Include the specified file in the nginx main configuration block
                         (multiple instances are supported).
 
-    --ipv6              Make the nginx resolver lookup both IPv4 and IPv6 addresses
+    --resolve-ipv6      Make the nginx resolver lookup both IPv4 and IPv6 addresses
 
     --nginx             Specify the nginx path (this option might be removed in the future).
     -V                  Print version numbers and nginx configurations.
@@ -234,8 +234,8 @@ resolver [\s\S]* ipv6=off;
 
 
 
-=== TEST 16: --ipv6 flag enables ipv6 resolution
---- opts: --ipv6
+=== TEST 16: --resolve-ipv6 flag enables ipv6 resolution
+--- opts: --resolve-ipv6
 --- src
 local prefix = ngx.config.prefix()
 local conf = prefix.."conf/nginx.conf"

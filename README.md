@@ -54,6 +54,8 @@ Synopsis
         --main-include path Include the specified file in the nginx main configuration block
                             (multiple instances are supported).
 
+        --resolve-ipv6      Make the nginx resolver lookup both IPv4 and IPv6 addresses
+
         --nginx             Specify the nginx path (this option might be removed in the future).
         -V                  Print version numbers and nginx configurations.
         --valgrind          Use valgrind to run nginx

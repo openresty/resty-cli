@@ -131,6 +131,7 @@ sub run_test ($) {
             $regex = qr/$regex/ms;
         }
         like $out, $regex, "$name - stdout like okay";
+
     } elsif (defined $block->out_not_like) {
         $regex = $block->out_not_like;
         if (!ref $regex) {
