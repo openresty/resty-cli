@@ -54,7 +54,7 @@ Options:
 
     --resolve-ipv6      Make the nginx resolver lookup both IPv4 and IPv6 addresses
 
-    --shdict NAME       Create the specified lua shared dicts in the http
+    --shdict NAME SIZE  Create the specified lua shared dicts in the http
                         configuration block (multiple instances are supported).
 
     --nginx             Specify the nginx path (this option might be removed in the future).
