@@ -222,7 +222,40 @@ print(dogs:get("Max"))
 
 
 
-=== TEST 14: multiple -e options
+=== TEST 14: --shdict option missing size
+--- opts: '--shdict=dogs'
+--- out
+--- err
+Invalid value for --shdict option. Expected: NAME SIZE
+--- ret: 2
+
+
+
+=== TEST 15: --shdict option case-insensitive size (1/2)
+--- opts: '--shdict=dogs 1m'
+--- src
+local dogs = ngx.shared.dogs
+dogs:set("Tom", 32)
+print(dogs:get("Tom"))
+--- out
+32
+--- err
+
+
+
+=== TEST 16: --shdict option case-insensitive size (2/2)
+--- opts: '--shdict=dogs 1M'
+--- src
+local dogs = ngx.shared.dogs
+dogs:set("Tom", 32)
+print(dogs:get("Tom"))
+--- out
+32
+--- err
+
+
+
+=== TEST 17: multiple -e options
 --- opts: -e 'print(1)' -e 'print(2)'
 --- out
 1
@@ -231,7 +264,7 @@ print(dogs:get("Max"))
 
 
 
-=== TEST 15: multiple -e options with file
+=== TEST 18: multiple -e options with file
 --- opts: -e 'print(1)' -e 'print(2)'
 --- src
 print(3)
@@ -243,7 +276,7 @@ print(3)
 
 
 
-=== TEST 16: multiple -e options with single quotes
+=== TEST 19: multiple -e options with single quotes
 --- opts: -e "print('1')" -e 'print(2)'
 --- out
 1
@@ -252,7 +285,7 @@ print(3)
 
 
 
-=== TEST 17: resolver has ipv6=off by default
+=== TEST 20: resolver has ipv6=off by default
 --- src
 local prefix = ngx.config.prefix()
 local conf = prefix.."conf/nginx.conf"
@@ -266,7 +299,7 @@ resolver [\s\S]* ipv6=off;
 
 
 
-=== TEST 18: --resolve-ipv6 flag enables ipv6 resolution
+=== TEST 21: --resolve-ipv6 flag enables ipv6 resolution
 --- opts: --resolve-ipv6
 --- src
 local prefix = ngx.config.prefix()

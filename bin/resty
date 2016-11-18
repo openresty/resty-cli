@@ -38,6 +38,16 @@ sub format_directives {
     return join("\n", @directives);
 }
 
+sub check_arg_format {
+    my ($arg_name, $regex, $arg_format, @args) = @_;
+    for (@args) {
+        unless (m/$regex/) {
+            warn "Invalid value for $arg_name option. Expected: $arg_format\n";
+            exit(2);
+        }
+    }
+}
+
 my @all_args = @ARGV;
 
 my (@http_includes, @main_includes, @shdicts, @src_a);
@@ -55,6 +65,8 @@ GetOptions("c=i",             \(my $conns_num),
            "resolve-ipv6",    \(my $resolve_ipv6),
            "V|v",             \(my $version))
    or usage(1);
+
+check_arg_format('--shdict', qr/^[a-z]*\s\d+(?i)[km]$/, 'NAME SIZE', @shdicts);
 
 my $src;
 if (@src_a) {
