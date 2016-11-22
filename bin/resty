@@ -38,12 +38,11 @@ sub format_directives {
     return join("\n", @directives);
 }
 
-sub check_arg_format {
-    my ($arg_name, $regex, $arg_format, @args) = @_;
-    for (@args) {
+sub check_option_format {
+    my ($opt_name, $regex, $opt_format, $args_ref) = @_;
+    for (@$args_ref) {
         unless (m/$regex/) {
-            warn "Invalid value for $arg_name option. Expected: $arg_format\n";
-            exit(2);
+            die "Invalid value for $opt_name option. Expected: $opt_format\n";
         }
     }
 }
@@ -66,7 +65,7 @@ GetOptions("c=i",             \(my $conns_num),
            "V|v",             \(my $version))
    or usage(1);
 
-check_arg_format('--shdict', qr/^[a-z]*\s\d+(?i)[km]$/, 'NAME SIZE', @shdicts);
+check_option_format('--shdict', qr/^[_a-z]+\s+\d+(?i)[km]?\z/, 'NAME SIZE', \@shdicts);
 
 my $src;
 if (@src_a) {

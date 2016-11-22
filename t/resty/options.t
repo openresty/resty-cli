@@ -227,7 +227,7 @@ print(dogs:get("Max"))
 --- out
 --- err
 Invalid value for --shdict option. Expected: NAME SIZE
---- ret: 2
+--- ret: 255
 
 
 
@@ -255,7 +255,19 @@ print(dogs:get("Tom"))
 
 
 
-=== TEST 17: multiple -e options
+=== TEST 17: --shdict option permissive format
+--- opts: '--shdict=cats_dogs   20000'
+--- src
+local dict = ngx.shared.cats_dogs
+dict:set("Tom", 32)
+print(dict:get("Tom"))
+--- out
+32
+--- err
+
+
+
+=== TEST 18: multiple -e options
 --- opts: -e 'print(1)' -e 'print(2)'
 --- out
 1
@@ -264,7 +276,7 @@ print(dogs:get("Tom"))
 
 
 
-=== TEST 18: multiple -e options with file
+=== TEST 19: multiple -e options with file
 --- opts: -e 'print(1)' -e 'print(2)'
 --- src
 print(3)
@@ -276,7 +288,7 @@ print(3)
 
 
 
-=== TEST 19: multiple -e options with single quotes
+=== TEST 20: multiple -e options with single quotes
 --- opts: -e "print('1')" -e 'print(2)'
 --- out
 1
@@ -285,7 +297,7 @@ print(3)
 
 
 
-=== TEST 20: resolver has ipv6=off by default
+=== TEST 21: resolver has ipv6=off by default
 --- src
 local prefix = ngx.config.prefix()
 local conf = prefix.."conf/nginx.conf"
@@ -299,7 +311,7 @@ resolver [\s\S]* ipv6=off;
 
 
 
-=== TEST 21: --resolve-ipv6 flag enables ipv6 resolution
+=== TEST 22: --resolve-ipv6 flag enables ipv6 resolution
 --- opts: --resolve-ipv6
 --- src
 local prefix = ngx.config.prefix()
