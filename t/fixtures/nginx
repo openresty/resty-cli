@@ -1,0 +1,9 @@
+#!/bin/bash
+
+if [[ "$1" = "-V" ]]; then
+    nginx -V 3>&1 1>&2 2>&3 3>&- | sed 's/--with-ipv6//g'
+    exit 0
+fi
+
+nginx "$@"
+
