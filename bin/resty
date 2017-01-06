@@ -17,6 +17,7 @@ use List::Util qw( max );
 use Getopt::Long qw( GetOptions :config no_ignore_case require_order);
 use File::Temp qw( tempdir );
 use POSIX qw( WNOHANG );
+use Time::HiRes qw( sleep );
 
 sub resolve_includes {
     my $type = shift;
@@ -396,19 +397,34 @@ sub forward_signal {
         kill $signame => $child_pid
             or die "failed to send $signame to process $child_pid: $!";
 
-        waitpid $child_pid, 0;
-        my $rc = 0;
-        if ($signame eq 'INT') {
-            $rc = 130;
-        }
+        my $nap = 0.001;
+        my $total_nap = 0;
+        while ($total_nap < 0.1) {
+            #warn "sleeping $nap";
+            $nap *= 1.5;
+            $total_nap += $nap;
+            sleep $nap;
 
-        if ($?) {
-            $rc = ($? >> 8);
-            if ($rc == 0) {
-                $rc = $?;
+            my $ret = waitpid $child_pid, WNOHANG;
+            next if $ret == 0;
+            last if $ret < 0;
+
+            my $rc = 0;
+            if ($signame eq 'INT') {
+                $rc = 130;
+
+            } elsif ($signame eq 'TERM') {
+                $rc = 143;
             }
+
+            if ($?) {
+                $rc = ($? >> 8);
+                if ($rc == 0) {
+                    $rc = $?;
+                }
+            }
+            exit $rc;
         }
-        exit $rc;
     }
 }
 

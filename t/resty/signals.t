@@ -81,6 +81,7 @@ for (1..3) {
 SIGTERM
 
 --- err
+--- ret: 143
 
 
 
