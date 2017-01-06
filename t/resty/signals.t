@@ -29,8 +29,8 @@ for (1..3) {
 
 --- out_like chop
 SIGINT
-
 --- err
+--- ret: 130
 
 
 

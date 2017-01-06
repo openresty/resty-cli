@@ -126,7 +126,13 @@ sub run_test ($) {
         }
     }
 
-    my $ret = ($? >> 8);
+    my $ret = 0;
+    if ($?) {
+        $ret = ($? >> 8);
+        if ($ret == 0) {
+            $ret = $?;
+        }
+    }
 
     if (defined $luafile) {
         unlink $luafile;

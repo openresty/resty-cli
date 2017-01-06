@@ -391,8 +391,24 @@ sub forward_signal {
     my $signame = shift;
 
     if ($child_pid) {
+        #warn "killing $child_pid\n";
+
         kill $signame => $child_pid
             or die "failed to send $signame to process $child_pid: $!";
+
+        waitpid $child_pid, 0;
+        my $rc = 0;
+        if ($signame eq 'INT') {
+            $rc = 130;
+        }
+
+        if ($?) {
+            $rc = ($? >> 8);
+            if ($rc == 0) {
+                $rc = $?;
+            }
+        }
+        exit $rc;
     }
 }
 
@@ -415,10 +431,13 @@ if ($pid == 0) {  # child process
     $child_pid = $pid;
     waitpid($child_pid, 0);
     my $rc = 0;
-    if (defined $?) {
+    if ($?) {
         $rc = ($? >> 8);
+        if ($rc == 0) {
+            $rc = $?;
+        }
     }
-    exit($rc);
+    exit $rc;
 }
 
 sub usage {
