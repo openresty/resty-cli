@@ -219,8 +219,10 @@ $inline_lua
 $file_lua
 
                 gen = function()
-                  if inline_gen then inline_gen() end
-                  if file_gen then file_gen() end
+                  local rc
+                  if inline_gen then rc = inline_gen() end
+                  if file_gen then rc = file_gen() end
+                  return rc
                 end
             end
 _EOC_
