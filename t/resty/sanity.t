@@ -25,7 +25,8 @@ g()
 stack traceback:
 .*?\.lua:2: in function 'f'
 .*?\.lua:6: in function 'g'
-.*?\.lua:9: in main chunk
+.*?\.lua:\d+: in function 'file_gen'
+.*?init_worker_by_lua:\d+: in function <init_worker_by_lua:\d+>
 .*?\[C\]: in function 'xpcall'
 .*?init_worker_by_lua:\d+: in function <init_worker_by_lua:\d+>$
 --- ret: 1

@@ -219,8 +219,8 @@ $inline_lua
 $file_lua
 
                 gen = function()
-                  if inline_gen then return inline_gen() end
-                  if file_gen then return file_gen() end
+                  if inline_gen then inline_gen() end
+                  if file_gen then file_gen() end
                 end
             end
 _EOC_
@@ -349,7 +349,9 @@ $loader
             -- print("calling timer.at...")
             local ok, err = ngx.timer.at(0, function ()
                 -- io.stderr:write("timer firing")
-                local ok, err = xpcall(gen, function(err)
+                local ok, err = xpcall(gen, function (err)
+                    -- level 3: we skip this function and the
+                    -- error() call itself in our stacktrace
                     local trace = debug.traceback(err, 3)
                     return handle_err(trace)
                 end)
