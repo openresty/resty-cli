@@ -350,10 +350,12 @@ $loader
             -- print("calling timer.at...")
             local ok, err = ngx.timer.at(0, function ()
                 -- io.stderr:write("timer firing")
-                local ok, err = pcall(gen)
-                if not ok then
-                    return handle_err(err)
-                end
+                local ok, err = xpcall(gen, function (err)
+                    -- level 3: we skip this function and the
+                    -- error() call itself in our stacktrace
+                    local trace = debug.traceback(err, 3)
+                    return handle_err(trace)
+                end)
                 local rc = err
                 if rc and type(rc) ~= "number" then
                     return handle_err("bad return value of type " .. type(rc))
