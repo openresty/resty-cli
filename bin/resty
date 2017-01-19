@@ -356,11 +356,10 @@ $loader
                     local trace = debug.traceback(err, 3)
                     return handle_err(trace)
                 end)
-                local rc = err
-                if rc and type(rc) ~= "number" then
-                    return handle_err("bad return value of type " .. type(rc))
+                if not ok then
+                    return handle_err(err)
                 end
-                return exit(rc)
+                return exit(0)
             end)
             if not ok then
                 return handle_err(err)
