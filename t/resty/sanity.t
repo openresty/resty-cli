@@ -30,3 +30,19 @@ stack traceback:
 .*?\[C\]: in function 'xpcall'
 .*?init_worker_by_lua:\d+: in function <init_worker_by_lua:\d+>$
 --- ret: 1
+
+
+
+=== TEST 2: ignores number return values from the user main chunk
+--- src
+return 123, 456
+--- err
+--- ret: 0
+
+
+
+=== TEST 3: ignores string return values from the user main chunk
+--- src
+return "hello world"
+--- err
+--- ret: 0
