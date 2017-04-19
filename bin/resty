@@ -131,7 +131,15 @@ my $conns = $conns_num || 64;
 my @nameservers;
 
 if (!$resolve_ipv6) {
-    unshift @nameservers, "ipv6=off";
+    # no error check to let the later exec() fail.
+    # worst case: ipv6=off is not added to the nginx
+    # conf, but the worker won't spawn anyways...
+    my $stderr = `$nginx_path -V 2>&1 1>/dev/null`;
+    #warn $stderr;
+
+    if (index($stderr, "--with-ipv6") != -1) {
+        unshift @nameservers, "ipv6=off";
+    }
 }
 
 # try to read the nameservers used by the system resolver:

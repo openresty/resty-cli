@@ -324,3 +324,18 @@ print(str)
 --- out_not_like
 resolver [\s\S]* ipv6=off;
 --- err
+
+
+
+=== TEST 23: ignore no ipv6 flag if Nginx doesn't support ipv6
+--- opts: --nginx=t/fixtures/nginx
+--- src
+local prefix = ngx.config.prefix()
+local conf = prefix.."conf/nginx.conf"
+local f = assert(io.open(conf, "r"))
+local str = f:read("*a")
+f:close()
+print(str)
+--- out_not_like
+resolver [\s\S]* ipv6=off;
+--- err
