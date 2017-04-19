@@ -54,6 +54,8 @@ Synopsis
         --main-include path Include the specified file in the nginx main configuration block
                             (multiple instances are supported).
 
+        --ns IP             Specify a custom name server (multiple instances are supported)
+
         --resolve-ipv6      Make the nginx resolver lookup both IPv4 and IPv6 addresses
 
         --shdict 'NAME SIZE'
