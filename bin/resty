@@ -50,7 +50,7 @@ sub check_option_format {
 
 my @all_args = @ARGV;
 
-my (@http_includes, @main_includes, @shdicts, @src_a);
+my (@http_includes, @main_includes, @shdicts, @ns, @src_a);
 
 GetOptions("c=i",             \(my $conns_num),
            "e=s",             \@src_a,
@@ -62,11 +62,13 @@ GetOptions("c=i",             \(my $conns_num),
            "nginx=s",         \(my $nginx_path),
            "valgrind",        \(my $use_valgrind),
            "valgrind-opts=s", \(my $valgrind_opts),
+           "ns=s",            \@ns,
            "resolve-ipv6",    \(my $resolve_ipv6),
            "V|v",             \(my $version))
    or usage(1);
 
-check_option_format('--shdict', qr/^[_a-z]+\s+\d+(?i)[km]?\z/, 'NAME SIZE', \@shdicts);
+check_option_format('--shdict', qr/^ [_a-z]+ \s+ \d+ (?i) [km]? $/x, 'NAME SIZE', \@shdicts);
+check_option_format('--ns',     qr/^ (?: \d{1,3} (?: \. \d{1,3} ){3} | \[ [0-9a-fA-F:]+ \] ) $/x, 'IP', \@ns);
 
 my $src;
 if (@src_a) {
@@ -130,26 +132,31 @@ my $conns = $conns_num || 64;
 
 my @nameservers;
 
-if (!$resolve_ipv6) {
-    unshift @nameservers, "ipv6=off";
-}
+if (@ns > 0) {
+    unshift @nameservers, @ns;
 
-# try to read the nameservers used by the system resolver:
-if (open my $in, "/etc/resolv.conf") {
-    while (<$in>) {
-        if (/^\s*nameserver\s+(\d+(?:\.\d+){3})(?:\s+|$)/) {
-            unshift @nameservers, $1;
-            if (@nameservers > 10) {
-                last;
+} else {
+    # try to read the nameservers used by the system resolver:
+    if (open my $in, "/etc/resolv.conf") {
+        while (<$in>) {
+            if (/^\s*nameserver\s+(\d+(?:\.\d+){3})(?:\s+|$)/) {
+                unshift @nameservers, $1;
+                if (@nameservers > 10) {
+                    last;
+                }
             }
         }
+        close $in;
     }
-    close $in;
 }
 
 if (!@nameservers) {
     # default to Google's open DNS servers
     unshift @nameservers, "8.8.8.8", "8.8.4.4";
+}
+
+if (!$resolve_ipv6) {
+    push @nameservers, "ipv6=off";
 }
 
 #warn "@nameservers\n";
@@ -474,6 +481,8 @@ Options:
 
     --main-include path Include the specified file in the nginx main configuration block
                         (multiple instances are supported).
+
+    --ns IP             Specify a custom name server (multiple instances are supported)
 
     --resolve-ipv6      Make the nginx resolver lookup both IPv4 and IPv6 addresses
 

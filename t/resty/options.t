@@ -52,6 +52,8 @@ Options:
     --main-include path Include the specified file in the nginx main configuration block
                         (multiple instances are supported).
 
+    --ns IP             Specify a custom name server (multiple instances are supported)
+
     --resolve-ipv6      Make the nginx resolver lookup both IPv4 and IPv6 addresses
 
     --shdict 'NAME SIZE'
@@ -300,12 +302,10 @@ print(3)
 
 === TEST 21: resolver has ipv6=off by default
 --- src
-local prefix = ngx.config.prefix()
-local conf = prefix.."conf/nginx.conf"
-local f = assert(io.open(conf, "r"))
-local str = f:read("*a")
-f:close()
-print(str)
+local conf = ngx.config.prefix() .. "conf/nginx.conf"
+local file = assert(io.open(conf, "r"))
+print(file:read "*a")
+file:close()
 --- out_like
 resolver [\s\S]* ipv6=off;
 --- err
@@ -315,12 +315,74 @@ resolver [\s\S]* ipv6=off;
 === TEST 22: --resolve-ipv6 flag enables ipv6 resolution
 --- opts: --resolve-ipv6
 --- src
-local prefix = ngx.config.prefix()
-local conf = prefix.."conf/nginx.conf"
-local f = assert(io.open(conf, "r"))
-local str = f:read("*a")
-f:close()
-print(str)
+local conf = ngx.config.prefix() .. "conf/nginx.conf"
+local file = assert(io.open(conf, "r"))
+print(file:read "*a")
+file:close()
 --- out_not_like
 resolver [\s\S]* ipv6=off;
 --- err
+
+
+
+=== TEST 23: specified name server overrides system name servers
+--- opts: --ns 127.0.0.1
+--- src
+local conf = ngx.config.prefix() .. "conf/nginx.conf"
+local file = assert(io.open(conf, "r"))
+print(file:read "*a")
+file:close()
+--- out_like
+resolver 127.0.0.1 ipv6=off;
+--- err
+
+
+
+=== TEST 24: multiple ns flags can be specified
+--- opts: --ns 127.0.0.1 --ns 127.0.0.2
+--- src
+local conf = ngx.config.prefix() .. "conf/nginx.conf"
+local file = assert(io.open(conf, "r"))
+print(file:read "*a")
+file:close()
+--- out_like
+resolver 127.0.0.1 127.0.0.2 ipv6=off;
+--- err
+
+
+
+=== TEST 24: ns flags can be specified in both ipv4 and ipv6 formats
+--- opts: --ns 127.0.0.1 --ns 127.0.0.2 --ns [::1] --ns [2003:dead:beef:4dad:23:46:bb:101]
+--- src
+local conf = ngx.config.prefix() .. "conf/nginx.conf"
+local file = assert(io.open(conf, "r"))
+print(file:read "*a")
+file:close()
+print(str)
+--- out_like
+resolver 127.0.0.1 127.0.0.2 \[::1\] \[2003:dead:beef:4dad:23:46:bb:101\] ipv6=off;
+--- err
+
+
+
+=== TEST 25: ns flag works with resolve ipv6 flag
+--- opts: --ns 127.0.0.1 --resolve-ipv6
+--- src
+local conf = ngx.config.prefix() .. "conf/nginx.conf"
+local file = assert(io.open(conf, "r"))
+print(file:read "*a")
+file:close()
+print(str)
+--- out_like
+resolver 127.0.0.1;
+--- err
+
+
+
+=== TEST 26: returns error message on invalid name server ip
+--- opts: --ns invalid
+--- src
+--- out
+--- err
+Invalid value for --ns option. Expected: IP
+--- ret: 255
