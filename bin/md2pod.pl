@@ -19,6 +19,7 @@ my %html_entities = (
     'lt' => 'E<lt>',
     'gt' => 'E<gt>',
     'quot' => '"',
+    'ast' => '*',
 );
 
 my $infile = shift or die "No input file specified.\n";
