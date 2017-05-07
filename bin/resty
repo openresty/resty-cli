@@ -261,6 +261,7 @@ http {
     access_log off;
     lua_socket_log_errors off;
     resolver @nameservers;
+    lua_regex_cache_max_entries 40960;
     $lua_shared_dicts
 $lua_package_path_config
     $http_include_directives
