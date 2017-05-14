@@ -5,11 +5,16 @@ package Test::Resty;
 
 use Test::Base -Base;
 use File::Temp qw( tempfile );
+use Cwd qw( cwd );
 use IPC::Run ();
 
 our @EXPORT = qw( run_tests blocks plan );
 
 our $UseValgrind = $ENV{TEST_RESTY_USE_VALGRIND};
+
+$ENV{LUA_PATH} = cwd . "/../lua-resty-core/lib/?.lua;;";
+
+#warn $ENV{LUA_PATH};
 
 sub write_user_files ($);
 
@@ -48,7 +53,7 @@ sub run_test ($) {
     my $name = $block->name;
 
     my $timeout = $block->timeout() || 10;
-    my $opts = $block->opts;
+    my $opts = $block->opts // '';
     my $args = $block->args;
 
     my $cmd = "./bin/resty";
@@ -62,19 +67,12 @@ sub run_test ($) {
         }
 
         my $extra_opts = "--valgrind '--valgrind-opts=$val_opts'";
-        if (!defined $opts) {
-            $opts = $extra_opts;
-
-        } else {
-            $opts .= " $extra_opts";
-        }
+        $opts .= " $extra_opts";
 
         warn "$name\n";
     }
 
-    if (defined $opts) {
-        $cmd .= " $opts";
-    }
+    $cmd .= " $opts";
 
     my $luafile;
     if (defined $block->src) {

@@ -351,7 +351,7 @@ $http_conf_lines
         local function handle_err(err)
             if err then
                 err = string.gsub(err, "^init_worker_by_lua:%d+: ", "")
-                stderr:write(err, "\\n")
+                stderr:write("ERROR: ", err, "\\n")
             end
             return exit(1)
         end
@@ -359,9 +359,15 @@ $http_conf_lines
         local ok, err = pcall(function ()
             if not ngx.config
                or not ngx.config.ngx_lua_version
-               or ngx.config.ngx_lua_version < 10005
+               or ngx.config.ngx_lua_version < 10009
             then
-                error("at least ngx_lua 0.10.5 is required")
+                error("at least ngx_lua 0.10.9 is required")
+            end
+
+            local signal_graceful_exit = require("ngx.process").signal_graceful_exit
+            if not signal_graceful_exit then
+                error("lua-resty-core library is too old; "
+                      .. "missing the signal_graceful_exit() function in ngx.process")
             end
 
 $loader
@@ -377,7 +383,7 @@ $loader
                 if not ok then
                     return handle_err(err)
                 end
-                return exit(0)
+                signal_graceful_exit()
             end)
             if not ok then
                 return handle_err(err)

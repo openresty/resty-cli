@@ -3,7 +3,7 @@
 use lib 't/lib';
 use Test::Resty;
 
-plan tests => blocks() * 2;
+plan tests => blocks() * 2 + 1;
 
 run_tests();
 
@@ -54,3 +54,20 @@ return "hello world"
 --- err
 Lua input file print("hello") not found.
 --- ret: 2
+
+
+
+=== TEST 5: threads
+--- src
+local function f ()
+    ngx.sleep(0.1)
+    ngx.say("hello")
+    ngx.sleep(0.1)
+    ngx.say("world")
+end
+assert(ngx.thread.spawn(f))
+--- out
+hello
+world
+--- err
+--- ret: 0
