@@ -177,7 +177,18 @@ print(dogs:get("Tom"))
 
 
 
-=== TEST 11: good --main-include option value (relative path)
+=== TEST 11: --http-include + -e
+--- opts: --http-include=t/tmp/a.conf -e 'local dogs = ngx.shared.dogs dogs:set("Tom", 32) print(dogs:get("Tom"))'
+--- user_files
+>>> a.conf
+lua_shared_dict dogs 1m;
+--- out
+32
+--- err
+
+
+
+=== TEST 12: good --main-include option value (relative path)
 --- opts: --main-include=/tmp/a.conf --main-include=/tmp/b.conf
 --- user_files
 >>> /tmp/a.conf
@@ -194,7 +205,7 @@ bar: 56
 
 
 
-=== TEST 12: --shdict option
+=== TEST 13: --shdict option
 --- opts: '--shdict=dogs 12k'
 --- src
 local dogs = ngx.shared.dogs
@@ -206,7 +217,7 @@ print(dogs:get("Tom"))
 
 
 
-=== TEST 13: multiple --shdict option
+=== TEST 14: multiple --shdict option
 --- opts: '--shdict=dogs 1m' '--shdict=cats 1m'
 --- src
 local dogs = ngx.shared.dogs
@@ -223,7 +234,7 @@ print(dogs:get("Max"))
 
 
 
-=== TEST 14: --shdict option missing size
+=== TEST 15: --shdict option missing size
 --- opts: '--shdict=dogs'
 --- out
 --- err
@@ -232,7 +243,7 @@ Invalid value for --shdict option. Expected: NAME SIZE
 
 
 
-=== TEST 15: --shdict option case-insensitive size (1/2)
+=== TEST 16: --shdict option case-insensitive size (1/2)
 --- opts: '--shdict=dogs 1m'
 --- src
 local dogs = ngx.shared.dogs
@@ -244,7 +255,7 @@ print(dogs:get("Tom"))
 
 
 
-=== TEST 16: --shdict option case-insensitive size (2/2)
+=== TEST 17: --shdict option case-insensitive size (2/2)
 --- opts: '--shdict=dogs 1M'
 --- src
 local dogs = ngx.shared.dogs
@@ -256,7 +267,7 @@ print(dogs:get("Tom"))
 
 
 
-=== TEST 17: --shdict option permissive format
+=== TEST 18: --shdict option permissive format
 --- opts: '--shdict=cats_dogs   20000'
 --- src
 local dict = ngx.shared.cats_dogs
@@ -268,7 +279,7 @@ print(dict:get("Tom"))
 
 
 
-=== TEST 18: multiple -e options
+=== TEST 19: multiple -e options
 --- opts: -e 'print(1)' -e 'print(2)'
 --- out
 1
@@ -277,7 +288,7 @@ print(dict:get("Tom"))
 
 
 
-=== TEST 19: multiple -e options with file
+=== TEST 20: multiple -e options with file
 --- opts: -e 'print(1)' -e 'print(2)'
 --- src
 print(3)
@@ -289,7 +300,7 @@ print(3)
 
 
 
-=== TEST 20: multiple -e options with single quotes
+=== TEST 21: multiple -e options with single quotes
 --- opts: -e "print('1')" -e 'print(2)'
 --- out
 1
@@ -298,7 +309,7 @@ print(3)
 
 
 
-=== TEST 21: resolver has ipv6=off by default
+=== TEST 22: resolver has ipv6=off by default
 --- src
 local prefix = ngx.config.prefix()
 local conf = prefix.."conf/nginx.conf"
@@ -312,7 +323,7 @@ resolver [\s\S]* ipv6=off;
 
 
 
-=== TEST 22: --resolve-ipv6 flag enables ipv6 resolution
+=== TEST 23: --resolve-ipv6 flag enables ipv6 resolution
 --- opts: --resolve-ipv6
 --- src
 local prefix = ngx.config.prefix()
