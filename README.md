@@ -42,21 +42,24 @@ Synopsis
     resty [options] [lua-file [args]]
 
     Options:
-        -c num              Set maximal connection count (default: 64).
-        -e prog             Run the inlined Lua code in "prog".
+        -c NUM              Set maximal connection count (default: 64).
+        -e PROG             Run the inlined Lua code in "prog".
         --help              Print this help.
 
-        --http-include path Include the specified file in the nginx http configuration block
+        --http-conf CONF    Specifies nginx.conf snippet inserted into the http {}
+                            configuration block (multiple instances are supported).
+
+        --http-include PATH Include the specified file in the nginx http configuration block
                             (multiple instances are supported).
 
-        -I dir              Add dir to the search paths for Lua libraries.
+        -I DIR              Add dir to the search paths for Lua libraries.
 
-        --main-include path Include the specified file in the nginx main configuration block
+        --main-include PATH Include the specified file in the nginx main configuration block
                             (multiple instances are supported).
 
-        --ns IP             Specify a custom name server (multiple instances are supported)
+        --ns IP             Specify a custom name server (multiple instances are supported).
 
-        --resolve-ipv6      Make the nginx resolver lookup both IPv4 and IPv6 addresses
+        --resolve-ipv6      Make the nginx resolver lookup both IPv4 and IPv6 addresses.
 
         --shdict 'NAME SIZE'
                             Create the specified lua shared dicts in the http
@@ -64,8 +67,8 @@ Synopsis
 
         --nginx             Specify the nginx path (this option might be removed in the future).
         -V                  Print version numbers and nginx configurations.
-        --valgrind          Use valgrind to run nginx
-        --valgrind-opts     Pass extra options to valgrind
+        --valgrind          Use valgrind to run nginx.
+        --valgrind-opts     Pass extra options to valgrind.
 
     For bug reporting instructions, please see:
     <http://openresty.org/#Community>

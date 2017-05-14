@@ -397,3 +397,13 @@ resolver 127.0.0.1;
 --- err
 Invalid value for --ns option. Expected: IP
 --- ret: 255
+
+
+
+=== TEST 29: --http-conf
+--- opts: --http-conf 'lua_shared_dict dogs 1m;'
+--- src
+ngx.say(ngx.shared.dogs and "yes" or "no")
+--- out
+yes
+--- err
