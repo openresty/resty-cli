@@ -62,6 +62,8 @@ Synopsis
 
         --resolve-ipv6      Make the nginx resolver lookup both IPv4 and IPv6 addresses.
 
+        --rr                Use Mozilla rr to record the execution of the underlying C process.
+
         --shdict 'NAME SIZE'
                             Create the specified lua shared dicts in the http
                             configuration block (multiple instances are supported).

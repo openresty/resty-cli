@@ -3,7 +3,7 @@
 use lib 't/lib';
 use Test::Resty;
 
-plan tests => blocks() * 3 - 1;
+plan tests => blocks() * 3;
 
 run_tests();
 
@@ -59,6 +59,8 @@ Options:
     --ns IP             Specify a custom name server (multiple instances are supported).
 
     --resolve-ipv6      Make the nginx resolver lookup both IPv4 and IPv6 addresses.
+
+    --rr                Use Mozilla rr to record the execution of the underlying C process.
 
     --shdict 'NAME SIZE'
                         Create the specified lua shared dicts in the http
@@ -418,6 +420,29 @@ yes
 --- opts: --valgrind --gdb
 --- src
 print("hi")
+--- out
 --- err
 ERROR: options --gdb and --valgrind cannot be specified at the same time.
+--- ret: 25
+
+
+
+=== TEST 31: --gdb & --rr
+--- opts: --gdb --rr
+--- src
+print("hi")
+--- out
+--- err
+ERROR: options --gdb and --rr cannot be specified at the same time.
+--- ret: 25
+
+
+
+=== TEST 32: --rr & --valgrind
+--- opts: --rr --valgrind
+--- src
+print("hi")
+--- out
+--- err
+ERROR: options --rr and --valgrind cannot be specified at the same time.
 --- ret: 25

@@ -66,6 +66,7 @@ GetOptions("c=i",             \(my $conns_num),
            "valgrind-opts=s", \(my $valgrind_opts),
            "ns=s",            \@ns,
            "resolve-ipv6",    \(my $resolve_ipv6),
+           "rr",              \(my $use_rr),
            "V|v",             \(my $version))
    or usage(1);
 
@@ -401,15 +402,28 @@ if ($use_gdb) {
             "same time.\n";
     }
 
-    unshift @cmd, "gdb", "--args",
-}
+    if ($use_rr) {
+        die "ERROR: options --gdb and --rr cannot be specified at the ",
+            "same time.\n";
+    }
 
-if ($use_valgrind) {
+    unshift @cmd, "gdb", "--args",
+
+} elsif ($use_rr) {
+    if ($use_valgrind) {
+        die "ERROR: options --rr and --valgrind cannot be specified at the ",
+            "same time.\n";
+    }
+
+    unshift @cmd, "rr", "record",
+
+} elsif ($use_valgrind) {
     my @new = ('valgrind');
     if ($valgrind_opts) {
         $valgrind_opts =~ s/^\s+|\s+$//g;
         push @new, split /\s+/, $valgrind_opts;
     }
+
     unshift @cmd, @new;
 }
 
@@ -508,6 +522,8 @@ Options:
     --ns IP             Specify a custom name server (multiple instances are supported).
 
     --resolve-ipv6      Make the nginx resolver lookup both IPv4 and IPv6 addresses.
+
+    --rr                Use Mozilla rr to record the execution of the underlying C process.
 
     --shdict 'NAME SIZE'
                         Create the specified lua shared dicts in the http
