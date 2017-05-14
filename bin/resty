@@ -200,16 +200,16 @@ _EOC_
 my $file_lua = '';
 if (defined $luafile) {
     if (!-f $luafile) {
-        die "Lua file $luafile not found.\n";
+        die "Lua input file $luafile not found.\n";
     }
 
-    my $chunk_name = "\@$luafile";
+    my $chunk_name = quote_as_lua_str("\@$luafile");
     $quoted_luafile = quote_as_lua_str($luafile);
     $file_lua = <<"_EOC_";
                 local fname = $quoted_luafile
                 local f = assert(io.open(fname, "r"))
                 local chunk = f:read("*a")
-                local file_gen = assert(loadstring(chunk, "$chunk_name"))
+                local file_gen = assert(loadstring(chunk, $chunk_name))
 _EOC_
 }
 

@@ -52,5 +52,5 @@ return "hello world"
 === TEST 4: bad file name
 --- opts: 'print("hello")'
 --- err
-Lua file print("hello") not found.
+Lua input file print("hello") not found.
 --- ret: 2
