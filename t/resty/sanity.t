@@ -46,3 +46,11 @@ return 123, 456
 return "hello world"
 --- err
 --- ret: 0
+
+
+
+=== TEST 4: bad file name
+--- opts: 'print("hello")'
+--- err
+Lua file print("hello") not found.
+--- ret: 2

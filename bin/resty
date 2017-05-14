@@ -199,6 +199,10 @@ _EOC_
 
 my $file_lua = '';
 if (defined $luafile) {
+    if (!-f $luafile) {
+        die "Lua file $luafile not found.\n";
+    }
+
     my $chunk_name = "\@$luafile";
     $quoted_luafile = quote_as_lua_str($luafile);
     $file_lua = <<"_EOC_";
