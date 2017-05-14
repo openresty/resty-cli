@@ -44,6 +44,7 @@ Synopsis
     Options:
         -c NUM              Set maximal connection count (default: 64).
         -e PROG             Run the inlined Lua code in "prog".
+        --gdb               Use GDB to run the underlying C process.
         --help              Print this help.
 
         --http-conf CONF    Specifies nginx.conf snippet inserted into the http {}

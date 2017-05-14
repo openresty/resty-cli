@@ -54,6 +54,7 @@ my (@http_confs, @http_includes, @main_includes, @shdicts, @ns, @src_a);
 
 GetOptions("c=i",             \(my $conns_num),
            "e=s",             \@src_a,
+           "gdb",             \(my $use_gdb),
            "h|help",          \(my $help),
            "http-conf=s",     \@http_confs,
            "http-include=s",  \@http_includes,
@@ -394,6 +395,15 @@ close $out;
 
 my @cmd = ($nginx_path, '-p', "$prefix_dir/", '-c', "conf/nginx.conf");
 
+if ($use_gdb) {
+    if ($use_valgrind) {
+        die "ERROR: options --gdb and --valgrind cannot be specified at the ",
+            "same time.\n";
+    }
+
+    unshift @cmd, "gdb", "--args",
+}
+
 if ($use_valgrind) {
     my @new = ('valgrind');
     if ($valgrind_opts) {
@@ -481,6 +491,7 @@ resty [options] [lua-file [args]]
 Options:
     -c NUM              Set maximal connection count (default: 64).
     -e PROG             Run the inlined Lua code in "prog".
+    --gdb               Use GDB to run the underlying C process.
     --help              Print this help.
 
     --http-conf CONF    Specifies nginx.conf snippet inserted into the http {}
