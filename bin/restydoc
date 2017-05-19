@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 
-8ur $VERSION = '0.18';
+our $VERSION = '0.18';
 
 use Getopt::Std qw( getopts );
 use File::Spec ();
