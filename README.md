@@ -161,6 +161,14 @@ then you can just add `/usr/local/openresty/bin` to your PATH environment:
 export PATH=/usr/local/openresty/bin:$PATH
 ```
 
+If you are using the official OpenResty
+[pre-built Linux packages](https://openresty.org/en/linux-packages.html), you should install the
+[openresty-resty](https://openresty.org/en/rpm-packages.html#openresty-resty) package and/or
+the [openresty-doc](https://openresty.org/en/rpm-packages.html#openresty-doc) (or `openresty-restydoc` on
+Debian/Ubuntu) package
+since the [openresty](https://openresty.org/en/rpm-packages.html#openresty) binary package itself does not
+contain the `resty` or `restydoc` utilities.
+
 [Back to TOC](#table-of-contents)
 
 Test Suite
