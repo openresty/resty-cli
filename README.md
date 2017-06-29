@@ -47,6 +47,10 @@ Synopsis
         --gdb               Use GDB to run the underlying C process.
         --help              Print this help.
 
+        --errlog-level LEVEL
+                            Set nginx error_log level.
+                            Can be debug, info, notice, warn, error, crit, alert, or emerg.
+
         --http-conf CONF    Specifies nginx.conf snippet inserted into the http {}
                             configuration block (multiple instances are supported).
 
