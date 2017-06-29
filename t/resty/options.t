@@ -44,6 +44,9 @@ Options:
     -e PROG             Run the inlined Lua code in "prog".
     --gdb               Use GDB to run the underlying C process.
     --help              Print this help.
+    --errlog-level LEVEL
+                        Set nginx error_log level.
+                        Can be debug, info, notice, warn, error, crit, alert, or emerg.
 
     --http-conf CONF    Specifies nginx.conf snippet inserted into the http {}
                         configuration block (multiple instances are supported).
@@ -446,3 +449,13 @@ print("hi")
 --- err
 ERROR: options --rr and --valgrind cannot be specified at the same time.
 --- ret: 25
+
+
+
+=== TEST 33: --errrlog-level debug
+--- opts: --errlog-level debug
+--- src
+ngx.log(ngx.DEBUG, 'debug message')
+--- out
+--- err_like
+1: debug message

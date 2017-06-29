@@ -52,10 +52,13 @@ my @all_args = @ARGV;
 
 my (@http_confs, @http_includes, @main_includes, @shdicts, @ns, @src_a);
 
+my $errlog_level = "warn";
+
 GetOptions("c=i",             \(my $conns_num),
            "e=s",             \@src_a,
            "gdb",             \(my $use_gdb),
            "h|help",          \(my $help),
+           "errlog-level=s",  \$errlog_level,
            "http-conf=s",     \@http_confs,
            "http-include=s",  \@http_includes,
            "shdict=s",        \@shdicts,
@@ -264,7 +267,7 @@ pid logs/nginx.pid;
 
 $env_list
 
-error_log stderr warn;
+error_log stderr $errlog_level;
 #error_log stderr debug;
 
 events {
@@ -513,6 +516,9 @@ Options:
     -e PROG             Run the inlined Lua code in "prog".
     --gdb               Use GDB to run the underlying C process.
     --help              Print this help.
+    --errlog-level LEVEL
+                        Set nginx error_log level.
+                        Can be debug, info, notice, warn, error, crit, alert, or emerg.
 
     --http-conf CONF    Specifies nginx.conf snippet inserted into the http {}
                         configuration block (multiple instances are supported).
