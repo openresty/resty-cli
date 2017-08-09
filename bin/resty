@@ -350,6 +350,7 @@ $http_conf_lines
     init_worker_by_lua_block {
         local exit = os.exit
         local stderr = io.stderr
+        local ffi = require "ffi"
 
         local function handle_err(err)
             if err then
@@ -385,6 +386,9 @@ $loader
                 end)
                 if not ok then
                     return handle_err(err)
+                end
+                if ffi.abi("win") then
+                    return exit(0)
                 end
                 signal_graceful_exit()
             end)
