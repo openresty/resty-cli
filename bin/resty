@@ -448,14 +448,14 @@ sub forward_signal {
     if ($child_pid) {
         #warn "killing $child_pid with $signame ...\n";
 
-        if ($signame eq 'INT') {
+        if ($signame eq 'INT' || $signame eq 'PIPE') {
             kill QUIT => $child_pid
                 or die "failed to send QUIT signal to process $child_pid: $!";
 
             sleep 0.1;
 
             kill KILL => $child_pid;
-            exit 130;
+            exit($signame eq 'INT' ? 130 : 141);
 
         } else {
             kill $signame => $child_pid

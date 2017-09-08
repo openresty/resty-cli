@@ -197,6 +197,7 @@ $SIG{INT}   = sub { print "GOT SIGINT"; exit 0 };
 $SIG{HUP}   = sub { print "GOT SIGHUP"; exit 0 };
 $SIG{WINCH} = sub { print "GOT SIGWINCH"; exit 0 };
 $SIG{PIPE} = sub { print "GOT SIGPIPE"; exit 0 };
+$SIG{QUIT} = sub { print "GOT SIGQUIT"; exit 0 };
 
 my $ppid;
 $ppid = getppid();
@@ -206,5 +207,6 @@ for (1..3) {
 }
 
 --- out chop
-GOT SIGPIPE
+GOT SIGQUIT
+--- ret: 141
 --- err
