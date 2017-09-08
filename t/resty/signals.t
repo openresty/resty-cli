@@ -19,6 +19,7 @@ use warnings;
 $SIG{INT}   = sub { print "GOT SIGINT"; exit 0 };
 $SIG{HUP}   = sub { print "GOT SIGHUP"; exit 0 };
 $SIG{WINCH} = sub { print "GOT SIGWINCH"; exit 0 };
+$SIG{QUIT} = sub { print "GOT SIGQUIT"; exit 0 };
 
 my $ppid;
 $ppid = getppid();
@@ -27,8 +28,8 @@ for (1..3) {
     sleep(1);
 }
 
---- out_like chop
-SIGINT
+--- out chomp
+GOT SIGQUIT
 --- err
 --- ret: 130
 

@@ -446,10 +446,21 @@ sub forward_signal {
     my $signame = shift;
 
     if ($child_pid) {
-        #warn "killing $child_pid\n";
+        #warn "killing $child_pid with $signame ...\n";
 
-        kill $signame => $child_pid
-            or die "failed to send $signame to process $child_pid: $!";
+        if ($signame eq 'INT') {
+            kill QUIT => $child_pid
+                or die "failed to send QUIT signal to process $child_pid: $!";
+
+            sleep 0.1;
+
+            kill KILL => $child_pid;
+            exit 130;
+
+        } else {
+            kill $signame => $child_pid
+                or die "failed to send $signame signal to process $child_pid: $!";
+        }
 
         my $nap = 0.001;
         my $total_nap = 0;
