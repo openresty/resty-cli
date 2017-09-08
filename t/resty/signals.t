@@ -183,3 +183,28 @@ for (1..3) {
 SIGWINCH
 
 --- err
+
+
+
+=== TEST 8: Forward SIGHUP to child process
+--- opts: -e 'print(1)'
+--- mock_nginx
+#!/usr/bin/env perl
+use strict;
+use warnings;
+
+$SIG{INT}   = sub { print "GOT SIGINT"; exit 0 };
+$SIG{HUP}   = sub { print "GOT SIGHUP"; exit 0 };
+$SIG{WINCH} = sub { print "GOT SIGWINCH"; exit 0 };
+$SIG{PIPE} = sub { print "GOT SIGPIPE"; exit 0 };
+
+my $ppid;
+$ppid = getppid();
+for (1..3) {
+    kill PIPE => $ppid;
+    sleep(1);
+}
+
+--- out chop
+GOT SIGPIPE
+--- err

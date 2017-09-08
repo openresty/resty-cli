@@ -493,7 +493,7 @@ sub forward_signal {
     }
 }
 
-for my $sig (qw/ INT TERM QUIT HUP USR1 USR2 WINCH /) {
+for my $sig (qw/ INT TERM QUIT HUP USR1 USR2 WINCH PIPE /) {
     $SIG{$sig} = \&forward_signal;
 }
 
