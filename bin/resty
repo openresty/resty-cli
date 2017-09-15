@@ -54,6 +54,13 @@ my (@http_confs, @http_includes, @main_includes, @shdicts, @ns, @src_a);
 
 my $errlog_level = "warn";
 
+sub require_lua_lib {
+    my $quoted_lua_lib = quote_as_lua_str($_[1]);
+    my $luastr = "require($quoted_lua_lib)";
+
+    push @src_a, $luastr;
+}
+
 GetOptions("c=i",             \(my $conns_num),
            "e=s",             \@src_a,
            "gdb",             \(my $use_gdb),
@@ -63,6 +70,7 @@ GetOptions("c=i",             \(my $conns_num),
            "http-include=s",  \@http_includes,
            "shdict=s",        \@shdicts,
            "I=s@",            \(my $Inc),
+           "l=s",             \&require_lua_lib,
            "main-include=s",  \@main_includes,
            "nginx=s",         \(my $nginx_path),
            "valgrind",        \(my $use_valgrind),
@@ -543,6 +551,7 @@ Options:
                         (multiple instances are supported).
 
     -I DIR              Add dir to the search paths for Lua libraries.
+    -l LIB              Require library "lib".
 
     --main-include PATH Include the specified file in the nginx main configuration block
                         (multiple instances are supported).
