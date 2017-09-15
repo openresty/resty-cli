@@ -56,6 +56,7 @@ Options:
                         (multiple instances are supported).
 
     -I DIR              Add dir to the search paths for Lua libraries.
+    -l LIB              Require library "lib".
 
     --main-include PATH Include the specified file in the nginx main configuration block
                         (multiple instances are supported).
@@ -460,3 +461,88 @@ ngx.log(ngx.DEBUG, 'debug message')
 --- out
 --- err_like
 1: debug message
+
+
+
+=== TEST 34: -l
+--- opts: -l t.tmp.testfile
+--- user_files
+>>> testfile.lua
+print(1)
+--- out
+1
+--- err
+
+
+
+=== TEST 35: multiple -l
+--- opts: -l t.tmp.testfile -l t.tmp.otherfile
+--- user_files
+>>> testfile.lua
+print(1)
+>>> otherfile.lua
+print(2)
+--- out
+1
+2
+--- err
+
+
+
+=== TEST 36: -l with -e
+--- opts: -e 'print(1)' -l t.tmp.testfile
+--- user_files
+>>> testfile.lua
+print(2)
+--- out
+1
+2
+--- err
+
+
+
+=== TEST 37: multiple -l with -e
+--- opts: -e print(1) -l t.tmp.testfile -e print(3) -l t.tmp.otherfile
+--- user_files
+>>> testfile.lua
+print(2)
+>>> otherfile.lua
+print(4)
+--- out
+1
+2
+3
+4
+--- err
+
+
+
+=== TEST 38: -l with file
+--- opts: -l t.tmp.testfile
+--- user_files
+>>> testfile.lua
+print(1)
+--- src
+print(2)
+--- out
+1
+2
+--- err
+
+
+
+=== TEST 39: bad -l value
+--- opts: -l missing
+--- out
+--- err_like chop
+module 'missing' not found
+--- ret: 1
+
+
+
+=== TEST 40: -l is quoted
+--- opts: -l t.tmp.testfile.one'two"three
+--- out
+--- err_like chop
+module 't.tmp.testfile.one'two"three' not found
+--- ret: 1
