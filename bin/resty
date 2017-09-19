@@ -81,8 +81,10 @@ GetOptions("c=i",             \(my $conns_num),
            "V|v",             \(my $version))
    or usage(1);
 
-check_option_format('--shdict', qr/^ [_a-z]+ \s+ \d+ (?i) [km]? $/x, 'NAME SIZE', \@shdicts);
-check_option_format('--ns',     qr/^ (?: \d{1,3} (?: \. \d{1,3} ){3} | \[ [0-9a-fA-F:]+ \] ) $/x, 'IP', \@ns);
+check_option_format('--shdict', qr/^ [_a-z]+ \s+ \d+ (?i) [km]? $/x,
+                    'NAME SIZE', \@shdicts);
+check_option_format('--ns', qr/^ (?: \d{1,3} (?: \. \d{1,3} ){3}
+                                 | \[ [0-9a-fA-F:]+ \] ) $/x, 'IP', \@ns);
 
 my $src;
 if (@src_a) {
@@ -103,7 +105,8 @@ if (!$nginx_path) {
             $ext = '';
         }
     }
-    $nginx_path = File::Spec->catfile($FindBin::RealBin, "..", "nginx", "sbin", "nginx$ext");
+    $nginx_path = File::Spec->catfile($FindBin::RealBin, "..", "nginx", "sbin",
+                                      "nginx$ext");
     if (!-f $nginx_path) {
         $nginx_path = File::Spec->catfile($FindBin::RealBin, "nginx$ext");
         if (!-f $nginx_path) {
@@ -376,10 +379,12 @@ $http_conf_lines
                 error("at least ngx_lua 0.10.9 is required")
             end
 
-            local signal_graceful_exit = require("ngx.process").signal_graceful_exit
+            local signal_graceful_exit =
+                require("ngx.process").signal_graceful_exit
             if not signal_graceful_exit then
                 error("lua-resty-core library is too old; "
-                      .. "missing the signal_graceful_exit() function in ngx.process")
+                      .. "missing the signal_graceful_exit() function "
+                      .. "in ngx.process")
             end
 
 $loader
@@ -467,7 +472,8 @@ sub forward_signal {
 
         } else {
             kill $signame => $child_pid
-                or die "failed to send $signame signal to process $child_pid: $!";
+                or die "failed to send $signame signal to process ",
+                       "$child_pid: $!";
         }
 
         my $nap = 0.001;
@@ -542,31 +548,37 @@ Options:
 
     --errlog-level LEVEL
                         Set nginx error_log level.
-                        Can be debug, info, notice, warn, error, crit, alert, or emerg.
+                        Can be debug, info, notice, warn, error, crit, alert,
+                        or emerg.
 
     --http-conf CONF    Specifies nginx.conf snippet inserted into the http {}
                         configuration block (multiple instances are supported).
 
-    --http-include PATH Include the specified file in the nginx http configuration block
-                        (multiple instances are supported).
+    --http-include PATH Include the specified file in the nginx http
+                        configuration block (multiple instances are supported).
 
     -I DIR              Add dir to the search paths for Lua libraries.
     -l LIB              Require library "lib".
 
-    --main-include PATH Include the specified file in the nginx main configuration block
-                        (multiple instances are supported).
+    --main-include PATH Include the specified file in the nginx main
+                        configuration block (multiple instances are supported).
 
-    --ns IP             Specify a custom name server (multiple instances are supported).
+    --ns IP             Specify a custom name server (multiple instances are
+                        supported).
 
-    --resolve-ipv6      Make the nginx resolver lookup both IPv4 and IPv6 addresses.
+    --resolve-ipv6      Make the nginx resolver lookup both IPv4 and IPv6
+                        addresses.
 
-    --rr                Use Mozilla rr to record the execution of the underlying C process.
+    --rr                Use Mozilla rr to record the execution of the
+                        underlying C process.
 
     --shdict 'NAME SIZE'
                         Create the specified lua shared dicts in the http
                         configuration block (multiple instances are supported).
 
-    --nginx             Specify the nginx path (this option might be removed in the future).
+    --nginx             Specify the nginx path (this option might be removed
+                        in the future).
+
     -V                  Print version numbers and nginx configurations.
     --valgrind          Use valgrind to run nginx.
     --valgrind-opts     Pass extra options to valgrind.

@@ -49,36 +49,46 @@ Synopsis
 
         --errlog-level LEVEL
                             Set nginx error_log level.
-                            Can be debug, info, notice, warn, error, crit, alert, or emerg.
+                            Can be debug, info, notice, warn, error, crit, alert,
+                            or emerg.
 
         --http-conf CONF    Specifies nginx.conf snippet inserted into the http {}
                             configuration block (multiple instances are supported).
 
-        --http-include PATH Include the specified file in the nginx http configuration block
-                            (multiple instances are supported).
+        --http-include PATH Include the specified file in the nginx http
+                            configuration block (multiple instances are supported).
 
         -I DIR              Add dir to the search paths for Lua libraries.
+        -l LIB              Require library "lib".
 
-        --main-include PATH Include the specified file in the nginx main configuration block
-                            (multiple instances are supported).
+        --main-include PATH Include the specified file in the nginx main
+                            configuration block (multiple instances are supported).
 
-        --ns IP             Specify a custom name server (multiple instances are supported).
+        --ns IP             Specify a custom name server (multiple instances are
+                            supported).
 
-        --resolve-ipv6      Make the nginx resolver lookup both IPv4 and IPv6 addresses.
+        --resolve-ipv6      Make the nginx resolver lookup both IPv4 and IPv6
+                            addresses.
 
-        --rr                Use Mozilla rr to record the execution of the underlying C process.
+        --rr                Use Mozilla rr to record the execution of the
+                            underlying C process.
 
         --shdict 'NAME SIZE'
                             Create the specified lua shared dicts in the http
                             configuration block (multiple instances are supported).
 
-        --nginx             Specify the nginx path (this option might be removed in the future).
+        --nginx             Specify the nginx path (this option might be removed
+                            in the future).
+
         -V                  Print version numbers and nginx configurations.
         --valgrind          Use valgrind to run nginx.
         --valgrind-opts     Pass extra options to valgrind.
 
     For bug reporting instructions, please see:
-    <http://openresty.org/#Community>
+
+        <https://openresty.org/en/community.html>
+
+    Copyright (C) Yichun Zhang (agentzh). All rights reserved.
 
     $ resty -e 'print("hello")'
     hello
