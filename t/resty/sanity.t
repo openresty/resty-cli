@@ -71,3 +71,36 @@ hello
 world
 --- err
 --- ret: 0
+
+
+
+=== TEST 6: catch interrupted fread during file readall (GH issue #35)
+--- src
+local ffi = require "ffi"
+
+ffi.cdef [[
+    int getpid(void);
+]]
+
+local pid = ffi.C.getpid()
+
+local signal = 17
+local platform = assert(io.popen("uname"):read("*l"))
+if platform == "Darwin" then
+    signal = 0
+end
+
+local cmd = string.format("kill -%d %d && sleep 0.1", signal, pid)
+assert(io.popen(cmd):read("*a"))
+--- err
+--- ret: 0
+
+
+
+=== TEST 7: file readall returns syscall errno when not EINTR (GH issue #35)
+--- src
+local f = assert(io.open("/"))
+assert(f:read("*a"))
+--- err_like chomp
+^ERROR:.*?\.lua:2: Is a directory$
+--- ret: 1
