@@ -3,7 +3,7 @@
 use lib 't/lib';
 use Test::Resty;
 
-plan tests => blocks() * 2 + 1;
+plan tests => blocks() * 2 + 2;
 
 run_tests();
 
@@ -74,8 +74,7 @@ world
 
 
 
-=== TEST 6: catch interrupted fread during file readall (GH issue #35)
---- SKIP
+=== TEST 6: EINTR - retry interrupted read during file readall (GH issue #35)
 --- src
 local ffi = require "ffi"
 
@@ -85,23 +84,134 @@ ffi.cdef [[
 
 local pid = ffi.C.getpid()
 
-local signal = 17
-local platform = assert(io.popen("uname"):read("*l"))
-if platform == "Darwin" then
-    signal = 0
-end
+local signals = {
+    --"HUP",
+    --"INFO",
+    --"XCPU",
+    --"USR1",
+    --"USR2",
+    "ALRM",
+    --"INT",
+    "IO",
+    "CHLD",
+    "WINCH",
+}
 
-local cmd = string.format("kill -%d %d && sleep 0.1", signal, pid)
-assert(io.popen(cmd):read("*a"))
---- err
+for _, signame in ipairs(signals) do
+    local cmd = string.format("kill -s %s %d && sleep 0.1", signame, pid)
+    local err = select(2, io.popen(cmd):read("*a"))
+    if err then
+        error(err)
+    end
+end
+--- err_not_like chomp
+^ERROR:.*?\.lua:\d+: Interrupted system call$
 --- ret: 0
 
 
 
-=== TEST 7: file readall returns syscall errno when not EINTR (GH issue #35)
+=== TEST 7: EINTR - retry interrupted read during file readbytes
 --- src
-local f = assert(io.open("/"))
-assert(f:read("*a"))
---- err_like chomp
-^ERROR:.*?\.lua:2: Is a directory$
---- ret: 1
+local ffi = require "ffi"
+
+ffi.cdef [[
+    int getpid(void);
+]]
+
+local pid = ffi.C.getpid()
+
+local signals = {
+    --"HUP",
+    --"INFO",
+    --"XCPU",
+    --"USR1",
+    --"USR2",
+    "ALRM",
+    --"INT",
+    "IO",
+    "CHLD",
+    "WINCH",
+}
+
+for _, signame in ipairs(signals) do
+    local cmd = string.format("kill -s %s %d && sleep 0.1", signame, pid)
+    local err = select(2, io.popen(cmd):read(1))
+    if err then
+        error(err)
+    end
+end
+--- err_not_like chomp
+^ERROR:.*?\.lua:\d+: Interrupted system call$
+--- ret: 0
+
+
+
+=== TEST 8: EINTR - retry interrupted read during file readnum
+--- src
+local ffi = require "ffi"
+
+ffi.cdef [[
+    int getpid(void);
+]]
+
+local pid = ffi.C.getpid()
+
+local signals = {
+    --"HUP",
+    --"INFO",
+    --"XCPU",
+    --"USR1",
+    --"USR2",
+    "ALRM",
+    --"INT",
+    "IO",
+    "CHLD",
+    "WINCH",
+}
+
+for _, signame in ipairs(signals) do
+    local cmd = string.format("kill -s %s %d && sleep 0.1", signame, pid)
+    local err = select(2, io.popen(cmd):read("*n"))
+    if err then
+        error(err)
+    end
+end
+--- err_not_like chomp
+^ERROR:.*?\.lua:\d+: Interrupted system call$
+--- ret: 0
+
+
+
+=== TEST 9: EINTR - retry interrupted read during file readline
+--- src
+local ffi = require "ffi"
+
+ffi.cdef [[
+    int getpid(void);
+]]
+
+local pid = ffi.C.getpid()
+
+local signals = {
+    --"HUP",
+    --"INFO",
+    --"XCPU",
+    --"USR1",
+    --"USR2",
+    "ALRM",
+    --"INT",
+    "IO",
+    "CHLD",
+    "WINCH",
+}
+
+for _, signame in ipairs(signals) do
+    local cmd = string.format("kill -s %s %d && sleep 0.1", signame, pid)
+    local err = select(2, io.popen(cmd):read("*l"))
+    if err then
+        error(err)
+    end
+end
+--- err_not_like chomp
+^ERROR:.*?\.lua:\d+: Interrupted system call$
+--- ret: 0

@@ -207,6 +207,21 @@ sub run_test ($) {
         warn "STDERR:\n$err\n";
     }
 
+    if (defined $block->err_like) {
+        $regex = $block->err_like;
+        if (!ref $regex) {
+            $regex = qr/$regex/ms;
+        }
+        like $err, $regex, "$name - stderr like okay";
+
+    } elsif (defined $block->err_not_like) {
+        $regex = $block->err_not_like;
+        if (!ref $regex) {
+            $regex = qr/$regex/ms;
+        }
+        unlike $err, $regex, "$name - stderr unlike okay";
+    }
+
     my $exp_ret = $block->ret;
     if (!defined $exp_ret) {
         $exp_ret = 0;
