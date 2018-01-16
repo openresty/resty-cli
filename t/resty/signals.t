@@ -210,3 +210,36 @@ for (1..3) {
 GOT SIGQUIT
 --- ret: 141
 --- err
+
+
+
+=== TEST 9: Rapidly send SIGWINCH while child is exiting
+--- opts: -e 'print(1)'
+--- mock_nginx
+#!/usr/bin/env perl
+use strict;
+use warnings;
+
+my $resty_pid = getppid();
+my $pid = fork();
+
+if ($pid == 0) {
+    for (1..10) {
+        kill WINCH => $resty_pid or die "failed to send SIGWINCH";
+        sleep(0.001);
+    }
+
+    exit(0);
+}
+
+for (1..5) {
+    sleep(0.001);
+}
+
+print("done");
+exit(0);
+
+--- out chop
+done
+--- ret: 0
+--- err
