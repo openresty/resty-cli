@@ -104,3 +104,105 @@ assert(f:read("*a"))
 --- err_like chomp
 ^ERROR:.*?\.lua:2: Is a directory$
 --- ret: 1
+
+
+
+=== TEST 8: catch interrupted fread during file readbytes
+--- src
+local ffi = require "ffi"
+
+ffi.cdef [[
+    int getpid(void);
+]]
+
+local pid = ffi.C.getpid()
+
+local signal = 17
+local platform = assert(io.popen("uname"):read("*l"))
+if platform == "Darwin" then
+    signal = 0
+end
+
+local cmd = string.format("kill -%d %d && sleep 0.1", signal, pid)
+assert(io.popen(cmd):read(1))
+--- err_not_like chomp
+^ERROR:.*?\.lua:\d+: Interrupted system call$
+--- ret: 1
+
+
+
+=== TEST 9: file readbytes returns syscall errno when not EINTR
+--- src
+local f = assert(io.open("/"))
+assert(f:read(1))
+--- err_like chomp
+^ERROR:.*?\.lua:2: Is a directory$
+--- ret: 1
+
+
+
+=== TEST 10: catch interrupted fscanf during file readnum
+--- src
+local ffi = require "ffi"
+
+ffi.cdef [[
+    int getpid(void);
+]]
+
+local pid = ffi.C.getpid()
+
+local signal = 17
+local platform = assert(io.popen("uname"):read("*l"))
+if platform == "Darwin" then
+    signal = 0
+end
+
+local cmd = string.format("kill -%d %d && sleep 0.1", signal, pid)
+assert(io.popen(cmd):read("*n"))
+--- err_not_like chomp
+^ERROR:.*?\.lua:\d+: Interrupted system call$
+--- ret: 1
+
+
+
+=== TEST 11: file readnum returns syscall errno when not EINTR
+--- src
+local f = assert(io.open("/"))
+assert(f:read("*n"))
+--- err_like chomp
+^ERROR:.*?\.lua:2: Is a directory$
+--- ret: 1
+
+
+
+=== TEST 12: catch interrupted fgets during file readline
+--- src
+local ffi = require "ffi"
+
+ffi.cdef [[
+    int getpid(void);
+]]
+
+local pid = ffi.C.getpid()
+
+local signal = 17
+local platform = assert(io.popen("uname"):read("*l"))
+if platform == "Darwin" then
+    signal = 0
+end
+
+local cmd = string.format("kill -%d %d && sleep 0.1 && echo '\n'", signal, pid)
+assert(io.popen(cmd):read("*l"))
+--- err_not_like chomp
+^ERROR:.*?\.lua:\d+: Interrupted system call$
+--- ret: 0
+
+
+
+=== TEST 13: file readline returns syscall errno when not EINTR
+--- src
+local f = assert(io.open("/"))
+assert(f:read("*l"))
+--- err_like chomp
+^ERROR:.*?\.lua:2: Is a directory$
+--- ret: 1
