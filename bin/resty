@@ -17,6 +17,7 @@ use List::Util qw( max );
 use Getopt::Long qw( GetOptions :config no_ignore_case require_order);
 use File::Temp qw( tempdir );
 use POSIX qw( WNOHANG );
+use Errno qw(ESRCH ECHILD EINTR :POSIX);
 use Time::HiRes qw( sleep );
 
 sub resolve_includes {
@@ -481,8 +482,11 @@ sub forward_signal {
         #warn "killing $child_pid with $signame ...\n";
 
         if ($signame eq 'INT' || $signame eq 'PIPE') {
-            kill QUIT => $child_pid
-                or die "failed to send QUIT signal to process $child_pid: $!";
+            if ((kill QUIT => $child_pid) == 0) {
+                if (not $!{ESRCH}) {
+                    die "failed to send QUIT signal to process $child_pid: $!";
+                }
+            }
 
             sleep 0.1;
 
@@ -490,9 +494,12 @@ sub forward_signal {
             exit($signame eq 'INT' ? 130 : 141);
 
         } else {
-            kill $signame => $child_pid
-                or die "failed to send $signame signal to process ",
-                       "$child_pid: $!";
+            if ((kill $signame => $child_pid) == 0) {
+                if (not $!{ESRCH}) {
+                    die "failed to send $signame signal to process ",
+                        "$child_pid: $!";
+                }
+            }
         }
 
         my $nap = 0.001;
@@ -505,7 +512,8 @@ sub forward_signal {
 
             my $ret = waitpid $child_pid, WNOHANG;
             next if $ret == 0;
-            last if $ret < 0;
+            exit 0 if $!{ECHILD};
+            die "failed to wait on child process $child_pid: $!" if $ret < 0;
 
             my $rc = 0;
             if ($signame eq 'INT') {
