@@ -6,90 +6,337 @@
 # TODO: port this script into the nginx core for greater flexibility
 # and better performance.
 
-use strict;
-use warnings;
+# for maximum startup speed
+#use strict;
+#use warnings;
 
 our $VERSION = '0.21';
 
-use File::Spec ();
-use FindBin ();
-use List::Util qw( max );
-use Getopt::Long qw( GetOptions :config no_ignore_case require_order);
-use File::Temp qw( tempdir );
-use POSIX qw( WNOHANG );
-use Errno qw(ESRCH ECHILD EINTR :POSIX);
-use Time::HiRes qw( sleep );
+# OpenResty's build system would patch the following line to initialize
+# the $nginx_path variable to point to the path of its own nginx binary
+# directly.
+my $nginx_path;
 
-sub resolve_includes {
-    my $type = shift;
-    my @paths = map {
-        my $abs_path = File::Spec->rel2abs($_);
-        unless (-f $abs_path) {
-          die "Could not find $type include '$abs_path'";
-        }
-        "include $abs_path;";
-    } @_;
-    return join("\n", @paths);
-}
+my $WNOHANG = 1;
 
-sub format_directives {
-    my $name = shift;
-    my @directives = map {
-        "$name $_;";
-    } @_;
-    return join("\n", @directives);
-}
+my $is_win32 = ($^O eq 'MSWin32');
+#$is_win32 = 1;
 
-sub check_option_format {
-    my ($opt_name, $regex, $opt_format, $args_ref) = @_;
-    for (@$args_ref) {
-        unless (m/$regex/) {
-            die "Invalid value for $opt_name option. Expected: $opt_format\n";
-        }
-    }
-}
+my $cwd;
 
 my @all_args = @ARGV;
 
 my (@http_confs, @http_includes, @main_includes, @shdicts, @ns, @src_a);
 
 my $errlog_level = "warn";
+my ($use_gdb, $use_valgrind, $use_rr, $version);
+my ($conns_num, @inc_dirs, $jit_dumper, $valgrind_opts, $resolve_ipv6);
+my $lua_shared_dicts = '';
 
-sub require_lua_lib {
-    my $quoted_lua_lib = quote_as_lua_str($_[1]);
-    my $luastr = "require($quoted_lua_lib)";
+{
+    # Note: we do not use external modules like Getopt::Long because we want
+    # to maximum startup speed.
+    my @args = @ARGV;
+    my $nargs = @args;
+    my $found_opts;
+    while (@args) {
+        my $arg = shift @args;
 
-    push @src_a, $luastr;
-}
+        if ($arg =~ /^-/) {
+            $found_opts = 1;
 
-GetOptions("c=i",             \(my $conns_num),
-           "e=s",             \@src_a,
-           "gdb",             \(my $use_gdb),
-           "h|help",          \(my $help),
-           "errlog-level=s",  \$errlog_level,
-           "http-conf=s",     \@http_confs,
-           "http-include=s",  \@http_includes,
-           "shdict=s",        \@shdicts,
-           "I=s@",            \(my $Inc),
-           "j=s",             \(my $jit_dumper),
-           "l=s",             \&require_lua_lib,
-           "main-include=s",  \@main_includes,
-           "nginx=s",         \(my $nginx_path),
-           "valgrind",        \(my $use_valgrind),
-           "valgrind-opts=s", \(my $valgrind_opts),
-           "ns=s",            \@ns,
-           "resolve-ipv6",    \(my $resolve_ipv6),
-           "rr",              \(my $use_rr),
-           "V|v",             \(my $version))
-   or usage(1);
+            if ($arg eq '-I') {
+                my $v = shift @args;
+                if (!defined $v) {
+                    die "option -I takes an argument but found none.\n";
+                }
+                push @inc_dirs, $v;
+                next;
+            }
 
-check_option_format('--shdict', qr/^ [_a-z]+ \s+ \d+ (?i) [km]? $/x,
-                    'NAME SIZE', \@shdicts);
-check_option_format('--ns', qr/^ (?: \d{1,3} (?: \. \d{1,3} ){3}
-                                 | \[ [0-9a-fA-F:]+ \] ) $/x, 'IP', \@ns);
+            if ($arg =~ /^-I=?(.*)/) {
+                push @inc_dirs, $1;
+                next;
+            }
 
-if ($help) {
-    usage(0);
+            if ($arg eq '-e') {
+                my $v = shift @args;
+                if (!defined $v) {
+                    die "option -e takes an argument but found none.\n";
+                }
+                push @src_a, $v;
+                next;
+            }
+
+            if ($arg =~ /^-e=?(.*)/) {
+                push @src_a, $1;
+                next;
+            }
+
+            if ($arg eq '-l') {
+                my $v = shift @args;
+                if (!defined $v) {
+                    die "option -l takes an argument but found none.\n";
+                }
+
+                my $quoted_lua_lib = quote_as_lua_str($v);
+                my $lua = "require($quoted_lua_lib)";
+
+                push @src_a, $lua;
+                next;
+            }
+
+            if ($arg =~ /^-l=?(.*)/) {
+                my $v = $1;
+                my $quoted_lua_lib = quote_as_lua_str($v);
+                my $lua = "require($quoted_lua_lib)";
+
+                push @src_a, $lua;
+                next;
+            }
+
+            if ($arg eq '-j') {
+                if (defined $jit_dumper) {
+                    die "duplicate -j opton found.\n";
+                }
+
+                $jit_dumper = shift @args;
+                if (!defined $jit_dumper) {
+                    die "option -j takes an argument but found none.\n";
+                }
+                next;
+            }
+
+            if ($arg =~ /^-j=?(.*)/) {
+                if (defined $jit_dumper) {
+                    die "duplicate -j opton found.\n";
+                }
+
+                $jit_dumper = $1;
+                next;
+            }
+
+            if ($arg eq '-c') {
+                $conns_num = shift @args;
+                if (!defined $conns_num) {
+                    die "option -c takes an argument but found none.\n";
+                }
+                next;
+            }
+
+            if ($arg =~ /^-c=?(.*)/) {
+                $conns_num = $1;
+                next;
+            }
+
+            if ($arg eq '--') {
+                @ARGV = @args;
+                last;
+            }
+
+            if ($arg =~ /^--ns=(.*)/) {
+                push @ns, $1;
+                next;
+            }
+
+            if ($arg eq '--ns') {
+                my $v = shift @args;
+                if (!defined $v) {
+                    die "option --ns takes an argument but ",
+                        "found none.\n";
+                }
+                push @ns, $v;
+                next;
+            }
+
+            if ($arg =~ /^--shdict=(.*)/) {
+                push @shdicts, $1;
+                next;
+            }
+
+            if ($arg eq '--shdict') {
+                my $v = shift @args;
+                if (!defined $v) {
+                    die "option --shdict takes an argument but ",
+                        "found none.\n";
+                }
+                push @shdicts, $v;
+                next;
+            }
+
+            if ($arg =~ /^--nginx=(.*)/) {
+                $nginx_path = $1;
+                next;
+            }
+
+            if ($arg eq '--nginx') {
+                $nginx_path = shift @args;
+                if (!defined $nginx_path) {
+                    die "option --nginx takes an argument but ",
+                        "found none.\n";
+                }
+                next;
+            }
+
+            if ($arg =~ /^--http-conf=(.*)/) {
+                push @http_confs, $1;
+                next;
+            }
+
+            if ($arg eq '--http-conf') {
+                my $v = shift @args;
+                if (!defined $v) {
+                    die "option --http-conf takes an argument but ",
+                        "found none.\n";
+                }
+                push @http_confs, $v;
+                next;
+            }
+
+            if ($arg =~ /^--http-include=(.*)/) {
+                push @http_includes, $1;
+                next;
+            }
+
+            if ($arg eq '--http-include') {
+                my $v = shift @args;
+                if (!defined $v) {
+                    die "option --http-include takes an argument but ",
+                        "found none.\n";
+                }
+                push @http_includes, $v;
+                next;
+            }
+
+            if ($arg =~ /^--main-include=(.*)/) {
+                push @main_includes, $1;
+                next;
+            }
+
+            if ($arg eq '--main-include') {
+                my $v = shift @args;
+                if (!defined $v) {
+                    die "option --main-include takes an argument but ",
+                        "found none.\n";
+                }
+                push @main_includes, $v;
+                next;
+            }
+
+            if ($arg =~ /^--valgrind-opts=(.*)/) {
+                if (defined $valgrind_opts) {
+                    die "ERROR: duplicate --valgrind-opts options\n";
+                }
+
+                $valgrind_opts = $1;
+                next;
+            }
+
+            if ($arg eq '--valgrind-opts') {
+                if (defined $valgrind_opts) {
+                    die "ERROR: duplicate --valgrind-opts options\n";
+                }
+
+                $valgrind_opts = shift @args;
+                if (!defined $valgrind_opts) {
+                    die "option --valgrind-opts takes an argument but ",
+                        "found none.\n";
+                }
+                next;
+            }
+
+            if ($arg =~ /^--errlog-level=(.*)/) {
+                $errlog_level = $1;
+                next;
+            }
+
+            if ($arg eq '--errlog-level') {
+                $errlog_level = shift @args;
+                if (!defined $errlog_level) {
+                    die "option --errlog-level takes an argument but ",
+                        "found none.\n";
+                }
+                next;
+            }
+
+            if ($arg eq '--resolve-ipv6') {
+                $resolve_ipv6 = 1;
+                next;
+            }
+
+            if ($arg eq '--gdb') {
+                $use_gdb = 1;
+                next;
+            }
+
+            if ($arg eq '--valgrind') {
+                $use_valgrind = 1;
+                next;
+            }
+
+            if ($arg eq '--rr') {
+                $use_rr = 1;
+                next;
+            }
+
+            if ($arg =~ /^(?:--help|-h)$/) {
+                usage(0);
+                last;
+            }
+
+            if ($arg =~ /^-[vV]$/) {
+                $version = 1;
+                next;
+            }
+
+            warn "ERROR: unknown option $arg\n\n";
+            usage(1);
+
+        } else {
+            last if !$found_opts;
+            unshift @args, $arg;
+            last;
+        }
+    }
+
+    if ($found_opts) {
+        @ARGV = @args;
+    }
+
+    if (defined $conns_num) {
+        if ($conns_num !~ /^\d+$/) {
+            die "option -c value must be a number but found ",
+                "'$conns_num'.\n";
+        }
+    }
+
+    if (defined $errlog_level) {
+        if ($errlog_level !~ /^[a-z]+$/) {
+            die "bad --errlog-level option value: $errlog_level";
+        }
+    }
+
+    if (@ns) {
+        for my $v (@ns) {
+            if ($v !~ /^ (?: \d{1,3} (?: \. \d{1,3} ){3}
+                             | \[ [0-9a-fA-F:]+ \] ) $/x)
+            {
+                die "ERROR: Invalid --ns option value: $v\n",
+                    "  (expecting an IP address)\n";
+            }
+        }
+    }
+
+    if (@shdicts) {
+        for my $v (@shdicts) {
+            if ($v !~ /^ [_a-z]+ \s+ \d+ (?i) [km]? $/x) {
+                die "ERROR: invalid --shdict option value: $v\n",
+                    "  (expecting NAME SIZE)\n";
+            }
+
+            $lua_shared_dicts .= "lua_shared_dict $v;\n";
+        }
+    }
 }
 
 if (defined $jit_dumper) {
@@ -103,7 +350,7 @@ if (defined $jit_dumper) {
         unshift @src_a, 'require "jit".off()';
 
     } else {
-        warn "Unknown -j option value: $jit_dumper.\n";
+        warn "ERROR: unknown -j option value: $jit_dumper.\n";
         usage(1);
     }
 }
@@ -112,12 +359,14 @@ if (defined $jit_dumper) {
 
 my $src;
 if (@src_a) {
-    $src = join('; ', @src_a);
+    $src = join '; ', @src_a;
 }
 
 if (!$nginx_path) {
-    use Config;
-    my $ext = $Config{_exe};
+    require FindBin;
+    require Config;
+    die if !%Config::Config;
+    my $ext = $Config::Config{_exe};
     if (!$ext) {
         if ($^O eq 'msys') {
             $ext = '.exe';
@@ -125,10 +374,23 @@ if (!$nginx_path) {
             $ext = '';
         }
     }
-    $nginx_path = File::Spec->catfile($FindBin::RealBin, "..", "nginx", "sbin",
-                                      "nginx$ext");
+
+    if ($is_win32) {
+        $nginx_path = File::Spec->catfile($FindBin::RealBin, "..", "nginx",
+                                          "sbin", "nginx$ext");
+
+    } else {
+        $nginx_path = "$FindBin::RealBin/../nginx/sbin/nginx$ext";
+    }
+
     if (!-f $nginx_path) {
-        $nginx_path = File::Spec->catfile($FindBin::RealBin, "nginx$ext");
+        if ($is_win32) {
+            $nginx_path = File::Spec->catfile($FindBin::RealBin, "nginx$ext");
+
+        } else {
+            $nginx_path = "$FindBin::RealBin/nginx$ext";
+        }
+
         if (!-f $nginx_path) {
             $nginx_path = "nginx";  # find in PATH
         }
@@ -144,17 +406,26 @@ if ($version) {
 }
 
 my $lua_package_path_config = '';
-if (defined $Inc) {
+if (@inc_dirs) {
     my $package_path = "";
     my $package_cpath = "";
-    for my $dir (@$Inc) {
+    for my $dir (@inc_dirs) {
         if (!-d $dir) {
             die "Search directory $dir is not found.\n";
         }
-        $package_path .= File::Spec->catfile($dir, "?.lua;");
-        $package_cpath .= File::Spec->catfile($dir, "?.so;");
+
+        if ($is_win32) {
+            $package_path .= File::Spec->catfile($dir, "?.lua;");
+            $package_cpath .= File::Spec->catfile($dir, "?.so;");
+
+        } else {
+            $package_path .= "$dir/?.lua;";
+            $package_cpath .= "$dir/?.so;";
+        }
     }
+
     $lua_package_path_config = <<_EOC_;
+
     lua_package_path "$package_path;";
     lua_package_cpath "$package_cpath;";
 _EOC_
@@ -208,24 +479,86 @@ if ($^O eq 'msys') {
     mkdir $prefix_dir or die "failed to mkdir $prefix_dir: $!";
 
 } else {
-    $prefix_dir = tempdir(CLEANUP => 1);
-    if ($^O eq 'MSWin32') {
-        require Win32;
-        $prefix_dir = Win32::GetLongPathName($prefix_dir);
+    if ($is_win32 || !-d '/tmp') {
+        require File::Temp;
+        $prefix_dir = File::Temp::tempdir(CLEANUP => 1);
+
+        if ($^O eq 'MSWin32') {
+            require Win32;
+            $prefix_dir = Win32::GetLongPathName($prefix_dir);
+        }
+
+    } else {
+        my $tmpdir = '/tmp/resty_';
+        my $N = 1000;
+
+        for (my $i = 0; $i < $N; $i++) {
+            my $name;
+            for (my $j = 0; $j < 10; $j++) {
+                my $code = 65 + int rand 26;
+                if (int rand 2 == 0) {
+                    $code += 32;
+                }
+
+                $name .= chr $code;
+            }
+
+            my $dir = $tmpdir . $name;
+            next if -d $dir;
+
+            mkdir $dir or die "Cannot mkdir $dir: $!\n";
+            $prefix_dir = $dir;
+            last;
+        }
+
+        if (!defined $prefix_dir) {
+            die "failed to derive a random temp directory name after $N ",
+                "attempts\n";
+        }
     }
 }
 #warn "prefix dir: $prefix_dir\n";
 
-my $logs_dir = File::Spec->catfile($prefix_dir, "logs");
+my $child_pid;
+
+END {
+    if (!$is_win32 && defined $prefix_dir) {
+        my $saved_status = $?;
+        system("rm -rf $prefix_dir") == 0
+            or warn "failed to remove temp directory $prefix_dir: $!";
+        $? = $saved_status;  # restore the exit code
+    }
+}
+
+my $logs_dir;
+if ($is_win32) {
+    $logs_dir = File::Spec->catfile($prefix_dir, "logs");
+
+} else {
+    $logs_dir = "$prefix_dir/logs";
+}
 mkdir $logs_dir or die "failed to mkdir $logs_dir: $!";
 
-my $conf_dir = File::Spec->catfile($prefix_dir, "conf");
+my $conf_dir;
+if ($is_win32) {
+    $conf_dir = File::Spec->catfile($prefix_dir, "conf");
+
+} else {
+    $conf_dir = "$prefix_dir/conf";
+}
 mkdir $conf_dir or die "failed to mkdir $conf_dir: $!";
 
 my $inline_lua = '';
 my $quoted_luafile;
 if (defined $src) {
-    my $file = File::Spec->catfile($conf_dir, "a.lua");
+    my $file;
+    if ($is_win32) {
+        $file = File::Spec->catfile($conf_dir, "a.lua");
+
+    } else {
+        $file = "$conf_dir/a.lua";
+    }
+
     open my $out, ">$file"
         or die "Cannot open $file for writing: $!\n";
     print $out $src;
@@ -280,13 +613,19 @@ for my $var (sort keys %ENV) {
     $env_list .= "env $var;\n";
 }
 
-my $main_include_directives = resolve_includes('main', @main_includes);
-my $http_include_directives = resolve_includes('http', @http_includes);
-my $lua_shared_dicts = format_directives('lua_shared_dict', @shdicts);
+my $main_include_directives = resolve_includes('main', \@main_includes);
+my $http_include_directives = resolve_includes('http', \@http_includes);
 
 my $http_conf_lines = join "", map { "    $_\n" } @http_confs;
 
-my $conf_file = File::Spec->catfile($conf_dir, "nginx.conf");
+my $conf_file;
+if ($is_win32) {
+    $conf_file = File::Spec->catfile($conf_dir, "nginx.conf");
+
+} else {
+    $conf_file = "$conf_dir/nginx.conf";
+}
+
 open my $out, ">$conf_file"
     or die "Cannot open $conf_file for writing: $!\n";
 
@@ -473,67 +812,6 @@ if ($use_gdb) {
     unshift @cmd, @new;
 }
 
-my $child_pid;
-
-sub forward_signal {
-    my $signame = shift;
-
-    if ($child_pid) {
-        #warn "killing $child_pid with $signame ...\n";
-
-        if ($signame eq 'INT' || $signame eq 'PIPE') {
-            if (kill(QUIT => $child_pid) == 0) {
-                if (not $!{ESRCH}) {
-                    die "failed to send QUIT signal to process $child_pid: $!";
-                }
-            }
-
-            sleep 0.1;
-
-            kill KILL => $child_pid;
-            exit($signame eq 'INT' ? 130 : 141);
-
-        } else {
-            if (kill($signame => $child_pid) == 0) {
-                if (not $!{ESRCH}) {
-                    die "failed to send $signame signal to process ",
-                        "$child_pid: $!";
-                }
-            }
-        }
-
-        my $nap = 0.001;
-        my $total_nap = 0;
-        while ($total_nap < 0.1) {
-            #warn "sleeping $nap";
-            $nap *= 1.5;
-            $total_nap += $nap;
-            sleep $nap;
-
-            my $ret = waitpid $child_pid, WNOHANG;
-            next if $ret == 0;
-            exit 0 if $!{ECHILD};
-            die "failed to wait on child process $child_pid: $!" if $ret < 0;
-
-            my $rc = 0;
-            if ($signame eq 'INT') {
-                $rc = 130;
-
-            } elsif ($signame eq 'TERM') {
-                $rc = 143;
-            }
-
-            if ($?) {
-                $rc = ($? >> 8);
-                if ($rc == 0) {
-                    $rc = $?;
-                }
-            }
-            exit $rc;
-        }
-    }
-}
-
 for my $sig (qw/ INT TERM QUIT HUP USR1 USR2 WINCH PIPE /) {
     $SIG{$sig} = \&forward_signal;
 }
@@ -547,7 +825,7 @@ if (!defined $pid) {
 if ($pid == 0) {  # child process
     #warn "exec @cmd...";
     exec(@cmd)
-        or die "Failed to run command \"@cmd\": $!\n";
+        or die "ERROR: failed to run command \"@cmd\": $!\n";
 
 } else {
     $child_pid = $pid;
@@ -707,4 +985,146 @@ sub gen_lua_code_for_args {
 
     #warn $luasrc;
     return $luasrc;
+}
+
+sub resolve_includes {
+    my ($type, $paths) = @_;
+
+    if (!defined $cwd) {
+        if ($is_win32) {
+            require File::Spec;
+
+        } else {
+            $cwd = `pwd`;
+            if (!$cwd || $?) {
+                require Cwd;
+                $cwd = Cwd::cwd();
+
+            } else {
+                chomp $cwd;
+            }
+        }
+    }
+
+    my $s = '';
+    for my $path (@$paths) {
+        if (!-f $path) {
+          die "ERROR: could not find $type include file '$path'";
+        }
+
+        my $abs_path;
+        if ($is_win32) {
+            $abs_path = File::Spec->rel2abs($path);
+
+        } elsif ($path =~ m{^/}) {
+            $abs_path = $path;
+
+        } else {
+            $abs_path = "$cwd/$path";
+        }
+
+        $s .= "include $abs_path;";
+    }
+
+    return $s;
+}
+
+sub forward_signal {
+    my $signame = shift;
+
+    if ($child_pid) {
+        #warn "killing $child_pid with $signame ...\n";
+
+        my $loaded_time_hires;
+
+        if ($signame eq 'INT' || $signame eq 'PIPE') {
+            # Note: we use eval here just because explicit use of %!
+            # would trigger auto-loading of the Errno module, which
+            # hurts script startup time.
+            eval q#
+                if (kill(QUIT => $child_pid) == 0) {
+                    if (not $!{ESRCH}) {
+                        die "failed to send QUIT signal to process ",
+                            "$child_pid: $!";
+                    }
+                }
+            #;
+            if ($@) {
+                die "failed to eval: $@";
+            }
+
+            require Time::HiRes;
+            $loaded_time_hires = 1;
+
+            Time::HiRes::sleep(0.1);
+
+            kill KILL => $child_pid;
+            exit($signame eq 'INT' ? 130 : 141);
+
+        } else {
+            # Note: we use eval here just because explicit use of %!
+            # would trigger auto-loading of the Errno module, which
+            # hurts script startup time.
+            eval q#
+                if (kill($signame => $child_pid) == 0) {
+                    if (not $!{ESRCH}) {
+                        die "failed to send $signame signal to process ",
+                            "$child_pid: $!";
+                    }
+                }
+            #;
+            if ($@) {
+                die "failed to eval: $@";
+            }
+        }
+
+        if (!$loaded_time_hires) {
+            require Time::HiRes;
+        }
+
+        my $nap = 0.001;
+        my $total_nap = 0;
+        while ($total_nap < 0.1) {
+            #warn "sleeping $nap";
+            $nap *= 1.5;
+            $total_nap += $nap;
+
+            Time::HiRes::sleep($nap);
+
+            # Note: we use eval here just because explicit use of %!
+            # would trigger auto-loading of the Errno module, which
+            # hurts script startup time.
+
+            my ($ret, $echild);
+            eval qq#
+                \$ret = waitpid \$child_pid, $WNOHANG;
+                \$echild = \$!{ECHILD};
+            #;
+            if ($@) {
+                die "failed to eval: $@";
+            }
+
+            next if $ret == 0;
+            exit 0 if $echild;
+            if ($ret < 0) {
+                die "failed to wait on child process $child_pid: $!";
+            }
+
+            my $rc = 0;
+            if ($signame eq 'INT') {
+                $rc = 130;
+
+            } elsif ($signame eq 'TERM') {
+                $rc = 143;
+            }
+
+            if ($?) {
+                $rc = ($? >> 8);
+                if ($rc == 0) {
+                    $rc = $?;
+                }
+            }
+            exit $rc;
+        }
+    }
 }

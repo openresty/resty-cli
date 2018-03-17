@@ -19,7 +19,7 @@ print("arg 3: ", arg[3])
 
 --- out
 --- err_like chop
-(?:Can't exec|valgrind:) "?/tmp/no/such/file"?: No such file or directory
+(?:ERROR: failed to run command|Can't exec|valgrind:) "?/tmp/no/such/file.*?"?: No such file or directory
 --- ret: 2
 
 
@@ -106,7 +106,7 @@ Copyright (C) Yichun Zhang (agentzh). All rights reserved.
 --- src
 --- out
 --- err_like chop
-Could not find http include '/tmp/no/such/file'
+ERROR: could not find http include file '/tmp/no/such/file'
 --- ret: 2
 
 
@@ -116,7 +116,7 @@ Could not find http include '/tmp/no/such/file'
 --- src
 --- out
 --- err_like chop
-Could not find main include '/tmp/no/such/file'
+ERROR: could not find main include file '/tmp/no/such/file'
 --- ret: 2
 
 
@@ -266,7 +266,8 @@ print(dogs:get("Max"))
 --- opts: '--shdict=dogs'
 --- out
 --- err
-Invalid value for --shdict option. Expected: NAME SIZE
+ERROR: invalid --shdict option value: dogs
+  (expecting NAME SIZE)
 --- ret: 255
 
 
@@ -421,7 +422,8 @@ resolver 127.0.0.1;
 --- src
 --- out
 --- err
-Invalid value for --ns option. Expected: IP
+ERROR: Invalid --ns option value: invalid
+  (expecting an IP address)
 --- ret: 255
 
 
