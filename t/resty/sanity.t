@@ -75,6 +75,7 @@ world
 
 
 === TEST 6: catch interrupted fread during file readall (GH issue #35)
+--- SKIP
 --- src
 local ffi = require "ffi"
 
