@@ -419,7 +419,7 @@ if (@inc_dirs) {
             $package_cpath .= File::Spec->catfile($dir, "?.so;");
 
         } else {
-            $package_path .= "$dir/?.lua;";
+            $package_path .= "$dir/?.ljbc;$dir/?.lua;";
             $package_cpath .= "$dir/?.so;";
         }
     }

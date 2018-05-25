@@ -586,3 +586,11 @@ TRACE 1 IR.*? TRACE 1 mcode
 --- opts: -j off -e 'require "jit.v".on() for i = 1, 200 do end'
 --- out
 --- err
+
+
+
+=== TEST 44: -I should include *.ljbc and *.lua
+--- opts: -I /tmp -e 'print(package.path)'
+--- out_like chop
+\A/tmp/\?\.ljbc;/tmp/\?\.lua;
+--- err
