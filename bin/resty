@@ -29,7 +29,7 @@ my @all_args = @ARGV;
 my (@http_confs, @http_includes, @main_includes, @shdicts, @ns, @src_a);
 
 my $errlog_level = "warn";
-my ($use_gdb, $use_valgrind, $use_rr, $version);
+my ($use_gdb, $use_valgrind, $use_rr, $version, $dump_nginx_conf);
 my ($conns_num, @inc_dirs, $jit_dumper, $valgrind_opts, $resolve_ipv6);
 my $lua_shared_dicts = '';
 
@@ -286,6 +286,11 @@ my $lua_shared_dicts = '';
 
             if ($arg =~ /^-[vV]$/) {
                 $version = 1;
+                next;
+            }
+
+            if ($arg eq "--dump-nginx-conf") {
+                $dump_nginx_conf = 1;
                 next;
             }
 
@@ -626,10 +631,7 @@ if ($is_win32) {
     $conf_file = "$conf_dir/nginx.conf";
 }
 
-open my $out, ">$conf_file"
-    or die "Cannot open $conf_file for writing: $!\n";
-
-print $out <<_EOC_;
+my $conf = <<_EOC_;
 daemon off;
 master_process off;
 worker_processes 1;
@@ -777,6 +779,16 @@ $loader
 }
 _EOC_
 
+if ($dump_nginx_conf) {
+    print $conf;
+    exit;
+}
+
+open my $out, ">$conf_file"
+    or die "Cannot open $conf_file for writing: $!\n";
+
+print $out $conf;
+
 close $out;
 
 my @cmd = ($nginx_path, '-p', "$prefix_dir/", '-c', "conf/nginx.conf");
@@ -894,6 +906,10 @@ Options:
                         in the future).
 
     -V                  Print version numbers and nginx configurations.
+
+    --dump-nginx-conf   Print out the generated nginx configuration file only
+                        without running the Lua code.
+
     --valgrind          Use valgrind to run nginx.
     --valgrind-opts     Pass extra options to valgrind.
 

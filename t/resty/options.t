@@ -88,6 +88,10 @@ Options:
                         in the future).
 
     -V                  Print version numbers and nginx configurations.
+
+    --dump-nginx-conf   Print out the generated nginx configuration file only
+                        without running the Lua code.
+
     --valgrind          Use valgrind to run nginx.
     --valgrind-opts     Pass extra options to valgrind.
 
@@ -593,4 +597,12 @@ TRACE 1 IR.*? TRACE 1 mcode
 --- opts: -I /tmp -e 'print(package.path)'
 --- out_like chop
 \A/tmp/\?\.ljbc;/tmp/\?\.lua;
+--- err
+
+
+
+=== TEST 45: --dump-nginx-conf
+--- opts: --dump-nginx-conf --errlog-level notice -e 'print(package.path)'
+--- out_like chop
+error_log stderr notice;
 --- err
