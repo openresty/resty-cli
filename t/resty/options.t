@@ -42,13 +42,17 @@ resty [options] [lua-file [args]]
 Options:
     -c NUM              Set maximal connection count (default: 64).
     -e PROG             Run the inlined Lua code in "prog".
-    --gdb               Use GDB to run the underlying C process.
-    --help              Print this help.
 
     --errlog-level LEVEL
                         Set nginx error_log level.
                         Can be debug, info, notice, warn, error, crit, alert,
                         or emerg.
+
+    --gdb               Use GDB to run the underlying C process.
+
+    --gdb-opts OPTS     Pass extra command-line options to GDB.
+
+    --help              Print this help.
 
     --http-conf CONF    Specifies nginx.conf snippet inserted into the http {}
                         configuration block (multiple instances are supported).
@@ -71,6 +75,9 @@ Options:
     --main-include PATH Include the specified file in the nginx main
                         configuration block (multiple instances are supported).
 
+    --nginx             Specify the nginx path (this option might be removed
+                        in the future).
+
     --ns IP             Specify a custom name server (multiple instances are
                         supported).
 
@@ -84,12 +91,12 @@ Options:
                         Create the specified lua shared dicts in the http
                         configuration block (multiple instances are supported).
 
-    --nginx             Specify the nginx path (this option might be removed
-                        in the future).
-
     -V                  Print version numbers and nginx configurations.
+
     --valgrind          Use valgrind to run nginx.
-    --valgrind-opts     Pass extra options to valgrind.
+
+    --valgrind-opts OPTS
+                        Pass extra options to valgrind.
 
 For bug reporting instructions, please see:
 
@@ -558,7 +565,7 @@ module 'missing' not found
 
 
 === TEST 40: -l is quoted
---- opts: -l t.tmp.testfile.one'two"three
+--- opts: -l t.tmp.testfile.one\'two\"three
 --- out
 --- err_like chop
 module 't.tmp.testfile.one'two"three' not found
@@ -594,3 +601,16 @@ TRACE 1 IR.*? TRACE 1 mcode
 --- out_like chop
 \A/tmp/\?\.ljbc;/tmp/\?\.lua;
 --- err
+
+
+
+=== TEST 45: --gdb-opts
+--- opts: --gdb-opts="-batch -ex 'b main' -ex run -ex bt -ex 'b lj_cf_io_method_write' -ex c -ex bt"
+--- src
+print("hi")
+io.stderr:write("hello world!~~\n")
+--- err
+--- out_like
+^Breakpoint 2, lj_cf_io_method_write \(L=0x[0-9a-f]+\) at lib_io\.c:\d+
+.*
+\#0  lj_cf_io_method_write \(L=0x[0-9a-f]+\) at lib_io\.c:\d+

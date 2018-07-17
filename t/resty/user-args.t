@@ -49,7 +49,7 @@ arg 3: 2 3 4$
 
 === TEST 3: with quote and options
 --- opts: -I /tmp
---- args: 1 2 \"
+--- args: 1 2 \\\"
 --- src
 print("arg -3: ", arg[-3])
 print("arg -2: ", arg[-2])

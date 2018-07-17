@@ -7,6 +7,7 @@ use Test::Base -Base;
 use File::Temp qw( tempfile );
 use Cwd qw( cwd );
 use IPC::Run ();
+#use Data::Dumper;
 
 our @EXPORT = qw( run_tests blocks plan );
 
@@ -17,6 +18,7 @@ $ENV{LUA_PATH} = cwd . "/../lua-resty-core/lib/?.lua;;";
 #warn $ENV{LUA_PATH};
 
 sub write_user_files ($);
+sub parse_cmd ($$);
 
 sub run_tests () {
     for my $block (Test::Base::blocks()) {
@@ -28,23 +30,52 @@ sub bail_out (@) {
     Test::More::BAIL_OUT(@_);
 }
 
-sub parse_cmd ($) {
-    my $cmd = shift;
+sub parse_cmd ($$) {
+    my ($block, $cmd) = @_;
+    my $name = $block->name;
+
     my @cmd;
     while (1) {
-        if ($cmd =~ /\G\s*"(.*?)"/gmsc) {
-            push @cmd, $1;
+        if ($cmd =~ /\G (\s*) "([^"]*)" /gmscx) {
+            my ($sep, $v) = ($1, $2);
+            #warn "sep: [$sep], v: [$v]";
+            if (!$sep && @cmd) {
+                $cmd[-1] .= $v;
 
-        } elsif ($cmd =~ /\G\s*'(.*?)'/gmsc) {
-            push @cmd, $1;
+            } else {
+                push @cmd, $v;
+            }
 
-        } elsif ($cmd =~ /\G\s*(\S+)/gmsc) {
-            push @cmd, $1;
+        } elsif ($cmd =~ /\G (\s*) '([^']*)' /gmscx) {
+            my ($sep, $v) = ($1, $2);
+            #warn "sep: [$sep], v: [$v]";
+            if (!$sep && @cmd) {
+                $cmd[-1] .= $v;
+
+            } else {
+                push @cmd, $v;
+            }
+
+        } elsif ($cmd =~ /\G (\s*) ( (?: \\. | [^\s'"\\]+ )+ ) /gmscx) {
+            my ($sep, $v) = ($1, $2);
+            #warn "sep: [$sep], v: [$v]";
+            $v =~ s/\\(.)/$1/g;
+            if (!$sep && @cmd) {
+                $cmd[-1] .= $v;
+
+            } else {
+                push @cmd, $v;
+            }
+
+        } elsif ($cmd =~ /\G \s* (.+) /gmscx) {
+            bail_out "$name - syntax error: $1";
 
         } else {
             last;
         }
     }
+
+    #warn "cmd: ", Dumper \@cmd;
     return @cmd;
 }
 
@@ -103,7 +134,9 @@ sub run_test ($) {
 
     #warn "CMD: $cmd\n";
 
-    my @cmd = parse_cmd($cmd);
+    my @cmd = parse_cmd $block, $cmd;
+
+    #warn Dumper \@cmd;
 
     write_user_files($block);
 
@@ -123,6 +156,9 @@ sub run_test ($) {
             fail("$name: failed to run command [$cmd]: $@");
         }
     }
+
+    #warn $out;
+    #warn $err;
 
     my $ret = 0;
     if ($?) {
@@ -156,16 +192,19 @@ sub run_test ($) {
         unlike $out, $regex, "$name - stdout unlike okay";
     }
 
+    my $err_pat = $block->err_like;
+
     if (defined $block->err) {
         is $err, $block->err, "$name - stderr eq okay";
-    }
 
-    $regex = $block->err_like;
-    if (defined $regex) {
-        if (!ref $regex) {
-            $regex = qr/$regex/ms;
+    } elsif (defined $err_pat) {
+        if (!ref $err_pat) {
+            $err_pat = qr/$err_pat/ms;
         }
-        like $err, $regex, "$name - stderr like okay";
+        like $err, $err_pat, "$name - stderr like okay";
+
+    } elsif ($err) {
+        warn "STDERR:\n$err\n";
     }
 
     my $exp_ret = $block->ret;

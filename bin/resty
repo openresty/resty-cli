@@ -10,6 +10,8 @@
 #use strict;
 #use warnings;
 
+sub split_sh_args ($);
+
 our $VERSION = '0.22';
 
 # OpenResty's build system would patch the following line to initialize
@@ -29,7 +31,7 @@ my @all_args = @ARGV;
 my (@http_confs, @http_includes, @main_includes, @shdicts, @ns, @src_a);
 
 my $errlog_level = "warn";
-my ($use_gdb, $use_valgrind, $use_rr, $version);
+my ($use_gdb, $use_valgrind, $use_rr, $version, $gdb_opts);
 my ($conns_num, @inc_dirs, $jit_dumper, $valgrind_opts, $resolve_ipv6);
 my $lua_shared_dicts = '';
 
@@ -229,6 +231,7 @@ my $lua_shared_dicts = '';
                 }
 
                 $valgrind_opts = $1;
+                $use_valgrind = 1;
                 next;
             }
 
@@ -242,6 +245,8 @@ my $lua_shared_dicts = '';
                     die "option --valgrind-opts takes an argument but ",
                         "found none.\n";
                 }
+
+                $use_valgrind = 1;
                 next;
             }
 
@@ -265,6 +270,31 @@ my $lua_shared_dicts = '';
             }
 
             if ($arg eq '--gdb') {
+                $use_gdb = 1;
+                next;
+            }
+
+            if ($arg =~ /^--gdb-opts=(.*)/) {
+                if (defined $gdb_opts) {
+                    die "ERROR: duplicate --gdb-opts options\n";
+                }
+
+                $gdb_opts = $1;
+                $use_gdb = 1;
+                next;
+            }
+
+            if ($arg eq '--gdb-opts') {
+                if (defined $gdb_opts) {
+                    die "ERROR: duplicate --gdb-opts options\n";
+                }
+
+                $gdb_opts = shift @args;
+                if (!defined $gdb_opts) {
+                    die "option --gdb-opts takes an argument but ",
+                        "found none.\n";
+                }
+
                 $use_gdb = 1;
                 next;
             }
@@ -792,7 +822,10 @@ if ($use_gdb) {
             "same time.\n";
     }
 
-    unshift @cmd, "gdb", "--args",
+    #warn "use gdb opts: $gdb_opts";
+
+    unshift @cmd, "gdb", defined $gdb_opts ? (split_sh_args $gdb_opts) : (),
+                  "--args",
 
 } elsif ($use_rr) {
     if ($use_valgrind) {
@@ -804,9 +837,8 @@ if ($use_gdb) {
 
 } elsif ($use_valgrind) {
     my @new = ('valgrind');
-    if ($valgrind_opts) {
-        $valgrind_opts =~ s/^\s+|\s+$//g;
-        push @new, split /\s+/, $valgrind_opts;
+    if (defined $valgrind_opts) {
+        push @new, split_sh_args $valgrind_opts;
     }
 
     unshift @cmd, @new;
@@ -823,7 +855,9 @@ if (!defined $pid) {
 }
 
 if ($pid == 0) {  # child process
-    #warn "exec @cmd...";
+    #use Data::Dumper;
+    #warn Dumper \@cmd;
+    #warn "exec [@cmd]...";
     exec(@cmd)
         or die "ERROR: failed to run command \"@cmd\": $!\n";
 
@@ -848,13 +882,17 @@ resty [options] [lua-file [args]]
 Options:
     -c NUM              Set maximal connection count (default: 64).
     -e PROG             Run the inlined Lua code in "prog".
-    --gdb               Use GDB to run the underlying C process.
-    --help              Print this help.
 
     --errlog-level LEVEL
                         Set nginx error_log level.
                         Can be debug, info, notice, warn, error, crit, alert,
                         or emerg.
+
+    --gdb               Use GDB to run the underlying C process.
+
+    --gdb-opts OPTS     Pass extra command-line options to GDB.
+
+    --help              Print this help.
 
     --http-conf CONF    Specifies nginx.conf snippet inserted into the http {}
                         configuration block (multiple instances are supported).
@@ -877,6 +915,9 @@ Options:
     --main-include PATH Include the specified file in the nginx main
                         configuration block (multiple instances are supported).
 
+    --nginx             Specify the nginx path (this option might be removed
+                        in the future).
+
     --ns IP             Specify a custom name server (multiple instances are
                         supported).
 
@@ -890,12 +931,12 @@ Options:
                         Create the specified lua shared dicts in the http
                         configuration block (multiple instances are supported).
 
-    --nginx             Specify the nginx path (this option might be removed
-                        in the future).
-
     -V                  Print version numbers and nginx configurations.
+
     --valgrind          Use valgrind to run nginx.
-    --valgrind-opts     Pass extra options to valgrind.
+
+    --valgrind-opts OPTS
+                        Pass extra options to valgrind.
 
 For bug reporting instructions, please see:
 
@@ -1127,4 +1168,53 @@ sub forward_signal {
             exit $rc;
         }
     }
+}
+
+sub split_sh_args ($) {
+    my $s = shift;
+
+    my @cmd;
+    while (1) {
+        if ($s =~ /\G (\s*) "([^"]*)" /gmscx) {
+            my ($sep, $v) = ($1, $2);
+            #warn "sep: [$sep], v: [$v]";
+            if (!$sep && @cmd) {
+                $cmd[-1] .= $v;
+
+            } else {
+                push @cmd, $v;
+            }
+
+        } elsif ($s =~ /\G (\s*) '([^']*)' /gmscx) {
+            my ($sep, $v) = ($1, $2);
+            #warn "sep: [$sep], v: [$v]";
+            if (!$sep && @cmd) {
+                $cmd[-1] .= $v;
+
+            } else {
+                push @cmd, $v;
+            }
+
+        } elsif ($s =~ /\G (\s*) ( (?: \\. | [^\s'"\\]+ )+ ) /gmscx) {
+            my ($sep, $v) = ($1, $2);
+            #warn "sep: [$sep], v: [$v]";
+            $v =~ s/\\(.)/$1/g;
+            if (!$sep && @cmd) {
+                $cmd[-1] .= $v;
+
+            } else {
+                push @cmd, $v;
+            }
+
+        } elsif ($s =~ /\G \s* (.+) /gmscx) {
+            die "syntax error: $1";
+
+        } else {
+            last;
+        }
+    }
+
+    #use Data::Dumper;
+    #warn "cmd: ", Dumper \@cmd;
+    return @cmd;
 }
