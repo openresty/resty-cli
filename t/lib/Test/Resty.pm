@@ -67,7 +67,7 @@ sub parse_cmd ($$) {
                 push @cmd, $v;
             }
 
-        } elsif ($cmd =~ /\G \s* (.+) /gmscx) {
+        } elsif ($cmd =~ /\G \s* (\S.*) /gmscx) {
             bail_out "$name - syntax error: $1";
 
         } else {

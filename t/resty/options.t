@@ -607,7 +607,18 @@ TRACE 1 IR.*? TRACE 1 mcode
 === TEST 45: --gdb-opts
 --- opts: --gdb-opts="-batch -ex 'b main' -ex run -ex bt -ex 'b lj_cf_io_method_write' -ex c -ex bt"
 --- src
-print("hi")
+io.stderr:write("hello world!~~\n")
+--- err
+--- out_like
+^Breakpoint 2, lj_cf_io_method_write \(L=0x[0-9a-f]+\) at lib_io\.c:\d+
+.*
+\#0  lj_cf_io_method_write \(L=0x[0-9a-f]+\) at lib_io\.c:\d+
+
+
+
+=== TEST 46: --gdb-opts (leading and trailing spaces)
+--- opts: --gdb-opts="  -batch -ex 'b main' -ex run -ex bt -ex 'b lj_cf_io_method_write' -ex c -ex bt  "
+--- src
 io.stderr:write("hello world!~~\n")
 --- err
 --- out_like

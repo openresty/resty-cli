@@ -1206,7 +1206,7 @@ sub split_sh_args ($) {
                 push @cmd, $v;
             }
 
-        } elsif ($s =~ /\G \s* (.+) /gmscx) {
+        } elsif ($s =~ /\G \s* (\S.*) /gmscx) {
             die "syntax error: $1";
 
         } else {
