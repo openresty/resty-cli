@@ -21,6 +21,7 @@ addons:
     - liblist-moreutils-perl
     - libgd-dev
     - libipc-run-perl
+    - gdb
 
 env:
   global:
