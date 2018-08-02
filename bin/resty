@@ -203,7 +203,7 @@ my $lua_shared_dicts = '';
             if ($arg eq '--main-conf') {
                 my $v = shift @args;
                 if (!defined $v) {
-                    die "option --http-conf takes an argument but ",
+                    die "option --main-conf takes an argument but ",
                         "found none.\n";
                 }
                 push @main_confs, $v;
