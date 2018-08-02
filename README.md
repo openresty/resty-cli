@@ -75,6 +75,10 @@ Options:
 
     -l LIB              Require library "lib".
 
+    --main-conf CONF    Specifies nginx.conf snippet inserted into the nginx
+                        main {} configuration block (multiple instances are
+                        supported).
+
     --main-include PATH Include the specified file in the nginx main
                         configuration block (multiple instances are supported).
 

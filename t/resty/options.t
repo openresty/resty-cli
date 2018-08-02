@@ -72,6 +72,10 @@ Options:
 
     -l LIB              Require library "lib".
 
+    --main-conf CONF    Specifies nginx.conf snippet inserted into the nginx
+                        main {} configuration block (multiple instances are
+                        supported).
+
     --main-include PATH Include the specified file in the nginx main
                         configuration block (multiple instances are supported).
 
@@ -625,3 +629,23 @@ io.stderr:write("hello world!~~\n")
 ^Breakpoint 2, lj_cf_io_method_write \(L=0x[0-9a-f]+\) at lib_io\.c:\d+
 .*
 \#0  lj_cf_io_method_write \(L=0x[0-9a-f]+\) at lib_io\.c:\d+
+
+
+
+=== TEST 47: --main-conf=<option>
+--- opts: --main-conf="debug_points bad;"
+--- src
+--- out
+--- err_like eval
+qr/nginx: \[emerg\] invalid value "bad" in/
+--- ret: 1
+
+
+
+=== TEST 48: --main-conf <option>
+--- opts: --main-conf "debug_points bad;"
+--- src
+--- out
+--- err_like eval
+qr/nginx: \[emerg\] invalid value "bad" in/
+--- ret: 1
