@@ -48,7 +48,7 @@ Options:
                         Can be debug, info, notice, warn, error, crit, alert,
                         or emerg.
 
-    --gdb               Use GDB to run the underlying C process.
+    --gdb               Use GDB to run the underlying nginx C process.
 
     --gdb-opts OPTS     Pass extra command-line options to GDB.
 
@@ -89,11 +89,17 @@ Options:
                         addresses.
 
     --rr                Use Mozilla rr to record the execution of the
-                        underlying C process.
+                        underlying nginx C process.
 
     --shdict 'NAME SIZE'
                         Create the specified lua shared dicts in the http
                         configuration block (multiple instances are supported).
+
+    --stap
+                        Use sysetmtap to run the underlying nginx C process.
+
+    --stap-opts OPTS
+                        Pass extra systemtap command line options.
 
     -V                  Print version numbers and nginx configurations.
 
