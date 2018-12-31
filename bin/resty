@@ -488,7 +488,8 @@ if (@inc_dirs) {
     my $package_cpath = "";
     for my $dir (@inc_dirs) {
         if (!-d $dir) {
-            die "Search directory $dir is not found.\n";
+            #die "Search directory $dir is not found.\n";
+            next;
         }
 
         if ($is_win32) {
