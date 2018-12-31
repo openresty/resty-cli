@@ -653,3 +653,11 @@ qr/nginx: \[emerg\] invalid value "bad" in/
 --- err_like eval
 qr/nginx: \[emerg\] invalid value "bad" in/
 --- ret: 1
+
+
+
+=== TEST 49: -I nonexistent-dir
+--- opts: -I nonexistent-dir -e 'ngx.say("hi")'
+--- out
+hi
+--- err

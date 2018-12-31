@@ -489,7 +489,7 @@ if (@inc_dirs) {
     for my $dir (@inc_dirs) {
         if (!-d $dir) {
             #die "Search directory $dir is not found.\n";
-            next;
+            #next;
         }
 
         if ($is_win32) {
