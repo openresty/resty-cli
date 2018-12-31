@@ -3,7 +3,7 @@
 use lib 't/lib';
 use Test::Resty;
 
-plan tests => blocks() * 3;
+plan tests => (blocks() * 3 - 2);
 
 run_tests();
 
@@ -615,10 +615,9 @@ TRACE 1 IR.*? TRACE 1 mcode
 
 
 === TEST 45: --gdb-opts
---- opts: --gdb-opts="-batch -ex 'b main' -ex run -ex bt -ex 'b lj_cf_io_method_write' -ex c -ex bt"
+--- opts: --gdb-opts="--nx -batch -ex 'b main' -ex run -ex bt -ex 'b lj_cf_io_method_write' -ex c -ex bt"
 --- src
 io.stderr:write("hello world!~~\n")
---- err
 --- out_like
 ^Breakpoint 2, lj_cf_io_method_write \(L=0x[0-9a-f]+\) at lib_io\.c:\d+
 .*
@@ -627,10 +626,9 @@ io.stderr:write("hello world!~~\n")
 
 
 === TEST 46: --gdb-opts (leading and trailing spaces)
---- opts: --gdb-opts="  -batch -ex 'b main' -ex run -ex bt -ex 'b lj_cf_io_method_write' -ex c -ex bt  "
+--- opts: --gdb-opts=" --nx -batch -ex 'b main' -ex run -ex bt -ex 'b lj_cf_io_method_write' -ex c -ex bt  "
 --- src
 io.stderr:write("hello world!~~\n")
---- err
 --- out_like
 ^Breakpoint 2, lj_cf_io_method_write \(L=0x[0-9a-f]+\) at lib_io\.c:\d+
 .*
