@@ -487,10 +487,10 @@ if (@inc_dirs) {
     my $package_path = "";
     my $package_cpath = "";
     for my $dir (@inc_dirs) {
-        if (!-d $dir) {
+        #if (!-d $dir) {
             #die "Search directory $dir is not found.\n";
             #next;
-        }
+        #}
 
         if ($is_win32) {
             $package_path .= File::Spec->catfile($dir, "?.lua;");
