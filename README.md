@@ -279,7 +279,7 @@ Copyright and License
 
 This module is licensed under the BSD license.
 
-Copyright (C) 2014-2018, by Yichun "agentzh" Zhang (章亦春) <agentzh@gmail.com>, OpenResty Inc.
+Copyright (C) 2014-2019, by Yichun "agentzh" Zhang (章亦春) <agentzh@gmail.com>, OpenResty Inc.
 Copyright (C) 2014-2016, by Guanlan Dai.
 
 All rights reserved.
