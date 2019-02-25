@@ -55,10 +55,6 @@ sub process_file {
         #warn pos_str($_), $in_code ? ', in-code' : (),
         #$list_level ? ", list level $list_level" : ();
 
-        if (!/\G ./gcxms) {
-            last;
-        }
-
         if ($in_code) {
             if ($add_indent && m/ \G ^ ``` \s* \n? $ /gcxm) {
                 undef $in_code;
@@ -408,6 +404,10 @@ sub process_file {
                 }
 
                 next;
+            }
+
+            if (pos $_ == length $_) {
+                last;
             }
 
             $out .= process_remaining_line($_);
