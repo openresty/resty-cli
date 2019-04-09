@@ -41,6 +41,7 @@ sub process_xml_file {
     my $directive;
     my @lists;
     my $syntax_block;
+    my $link_attrs;
 
     while (1) {
         #warn "scanner: ", pos_str($_);
@@ -98,35 +99,36 @@ sub process_xml_file {
             next;
         }
 
-        if (m{ \G < \s* link ( (?: \s+ \w+ \s* = \s* " [^"]* " )* ) >
-              (.*?)
-                 < \s* / \s* link \s* > }gcxs)
-         {
-            my ($attrs, $label) = ($1, $2);
+        if (m{ \G < \s* link ( (?: \s+ \w+ \s* = \s* " [^"]* " )* ) > }gcxs) {
+            $link_attrs = parse_attrs($1);
 
-            $label = encode_pod(decode_xml($label));
-            $label =~ s/^\s+|\s+$//gs;
+            if (defined $link_attrs->{doc} || defined $link_attrs->{url}) {
+                $pod .= "L<";
+            }
+        }
 
-            $attrs = parse_attrs($attrs);
+        if (m{ \G < \s* / \s* link \s* > }gcxs) {
+            if (!defined $link_attrs) {
+                die "No attributes for link: $&";
+            }
 
-            my $doc = $attrs->{doc};
-            my $url = $attrs->{url};
-            my $id = $attrs->{id};
+            my $doc = $link_attrs->{doc};
+            my $url = $link_attrs->{url};
+            my $id = $link_attrs->{id};
 
             if ($doc) {
                 $doc =~ s{.*/}{};
                 $doc =~ s/\.xml$//;
-                $pod .= "L<$label|$doc>";
+                $pod .= "|$doc>";
 
             } elsif ($url) {
-                $pod .= "L<$label|$url>";
+                $pod .= "|$url>";
 
-            } elsif ($id) {
-                $pod .= "$label";
-
-            } else {
+            } elsif (!defined $id) {
                 die "Bad link: $&";
             }
+
+            undef $link_attrs;
 
             next;
         }
@@ -496,9 +498,15 @@ _EOC_
             next;
         }
 
-        if (m{ \G \&(\w+); }gcxs) {
-            my $entity = $1;
-            $pod .= "E<$entity>";
+        if (m{ \G (\&(\w+);) }gcxs) {
+            if (!defined $link_attrs) {
+                my $entity = $2;
+                $pod .= "E<$entity>";
+
+            } else {
+                $pod .= encode_pod(decode_xml($1));
+            }
+
             next;
         }
 
@@ -509,7 +517,13 @@ _EOC_
         }
 
         if (m{ \G ([^<&]+) }gcxs) {
-            $pod .= encode_pod(decode_xml($1));
+            my $txt = $1;
+
+            if ($link_attrs) {
+                $txt =~ s/^\s+|\s+$//gs;
+            }
+
+            $pod .= encode_pod(decode_xml($txt));
             next;
         }
 
