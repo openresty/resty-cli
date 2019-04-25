@@ -715,6 +715,8 @@ master_process off;
 worker_processes 1;
 pid logs/nginx.pid;
 
+$main_conf_lines
+$main_include_directives
 $env_list
 
 error_log stderr $errlog_level;
@@ -723,9 +725,6 @@ error_log stderr $errlog_level;
 events {
     worker_connections $conns;
 }
-
-$main_conf_lines
-$main_include_directives
 
 http {
     access_log off;
