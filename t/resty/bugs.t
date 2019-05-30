@@ -19,3 +19,11 @@ end
 print("ok")
 --- out
 ok
+
+
+
+=== TEST 2: use /dev/null as a lua input file
+--- opts: -e 'print(arg[1], ", ", arg[2])' /dev/null hello world
+
+--- out
+hello, world

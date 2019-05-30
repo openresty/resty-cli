@@ -35,7 +35,7 @@ GOT SIGQUIT
 
 
 
-=== TEST 2: Forward SIGHUP to child process
+=== TEST 2: Convert SIGHUP to SIGQUIT to child process
 --- opts: -e 'print(1)'
 --- mock_nginx
 #!/usr/bin/env perl
@@ -44,6 +44,7 @@ use warnings;
 
 $SIG{INT}   = sub { print "GOT SIGINT"; exit 0 };
 $SIG{HUP}   = sub { print "GOT SIGHUP"; exit 0 };
+$SIG{QUIT}   = sub { print "GOT SIGQUIT"; exit 0 };
 $SIG{WINCH} = sub { print "GOT SIGWINCH"; exit 0 };
 
 my $ppid;
@@ -53,9 +54,8 @@ for (1..3) {
     sleep(1);
 }
 
---- out_like chop
-SIGHUP
-
+--- out chop
+GOT SIGQUIT
 --- err
 
 
@@ -186,7 +186,7 @@ SIGWINCH
 
 
 
-=== TEST 8: Forward SIGHUP to child process
+=== TEST 8: Convert SIGPIPE to SIGQUIT to child process
 --- opts: -e 'print(1)'
 --- mock_nginx
 #!/usr/bin/env perl

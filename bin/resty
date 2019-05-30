@@ -655,7 +655,7 @@ _EOC_
 
 my $file_lua = '';
 if (defined $luafile) {
-    if (!-f $luafile) {
+    if (!-e $luafile) {
         die "Lua input file $luafile not found.\n";
     }
 
@@ -914,7 +914,7 @@ if ($use_gdb) {
     unshift @cmd, @new;
 }
 
-for my $sig (qw/ INT TERM QUIT HUP USR1 USR2 WINCH PIPE /) {
+for my $sig (qw/ INT TERM QUIT HUP USR1 USR2 WINCH PIPE HUP /) {
     $SIG{$sig} = \&forward_signal;
 }
 
@@ -1152,6 +1152,10 @@ sub resolve_includes ($$) {
 
 sub forward_signal {
     my $signame = shift;
+
+    if ($signame eq 'HUP') {
+        $signame = 'QUIT';
+    }
 
     if ($child_pid) {
         #warn "killing $child_pid with $signame ...\n";
