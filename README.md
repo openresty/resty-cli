@@ -9,6 +9,7 @@ Table of Contents
 * [Name](#name)
 * [Description](#description)
 * [Synopsis](#synopsis)
+* [New Lua API](#new-lua-api)
 * [Installation](#installation)
 * [Test Suite](#test-suite)
 * [Authors](#authors)
@@ -202,6 +203,16 @@ built by gcc 4.8.3 20140911 (Red Hat 4.8.3-7) (GCC)
 TLS SNI support enabled
 configure arguments: --prefix=/usr/local/openresty/nginx ...
 ```
+
+New Lua API
+===========
+
+When Lua scripts are run by the `resty` utility, the `ngx.config.is_console`
+field will be set to `true`, so that the Lua scripts have a chance to know
+that they are running in the console environment where stdin, stdout, stderr,
+and etc are all available to them.
+
+[Back to TOC](#table-of-contents)
 
 Installation
 ============

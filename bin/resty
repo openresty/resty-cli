@@ -737,6 +737,8 @@ $lua_package_path_config
 $http_conf_lines
     $http_include_directives
     init_by_lua_block {
+        ngx.config.is_console = true
+
         local stdout = io.stdout
         local ngx_null = ngx.null
         local maxn = table.maxn
