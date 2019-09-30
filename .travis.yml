@@ -33,7 +33,7 @@ env:
     - LD_LIBRARY_PATH=$LUAJIT_LIB:$LD_LIBRARY_PATH
     - TEST_NGINX_SLEEP=0.003
   matrix:
-    - NGINX_VERSION=1.17.1
+    - NGINX_VERSION=1.17.4
 
 before_install:
   - sudo apt-get install -y cpanminus
