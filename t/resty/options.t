@@ -101,6 +101,8 @@ Options:
     --stap-opts OPTS
                         Pass extra systemtap command line options.
 
+    --user-runner CMD   Use CMD as user runner for the underlying nginx process.
+
     -V                  Print version numbers and nginx configurations.
 
     --valgrind          Use valgrind to run nginx.
