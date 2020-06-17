@@ -139,13 +139,14 @@ sub wanted {
             or die "cannot copy $docfile to $podfile: $!\n";
 
     } else {
-        my $mdfile = $docfile;
+        my $quoted_mdfile = shell_quote($docfile);
 
         #warn $name;
         #warn "wanted: $File::Find::dir $File::Find::name $_\n";
         $podfile = "$poddir/$name.pod";
+        my $quoted_podfile = shell_quote($podfile);
         #warn "$name => $podfile";
-        shell("$FindBin::RealBin/md2pod.pl -o $podfile $mdfile");
+        shell("$FindBin::RealBin/md2pod.pl -o $quoted_podfile $quoted_mdfile");
     }
 
     my $dist_module = process_pod($podfile, $name);
@@ -356,4 +357,25 @@ sub gen_aliases {
     }
 
     return @aliases;
+}
+
+sub shell_quote() {
+    my $ret = shift;
+
+    if (!defined $ret or $ret eq '') {
+        return "''";
+    }
+
+    if (m|[^\w!%+,\-./:=@^]|) {
+        $ret =~ s/'/'\\''/g;
+
+        # make multiple ' in a row look simpler
+        # '\'''\'''\'' -> '"'''"'
+        $ret =~ s|((?:'\\''){2,})|q{'"} . (q{'} x (length($1) / 4)) . q{"'}|ge;
+        $ret = "'$ret'";
+        $ret =~ s/^''//;
+        $ret =~ s/''$//;
+    }
+
+    return $ret;
 }
