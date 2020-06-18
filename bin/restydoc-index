@@ -366,6 +366,10 @@ sub shell_quote() {
         return "''";
     }
 
+    if ($ret =~ s/\x00//g) {
+        die "shell_quote(): No way to quote string containing null (\\000) bytes\n";
+    }
+
     if (m|[^\w!%+,\-./:=@^]|) {
         $ret =~ s/'/'\\''/g;
 
