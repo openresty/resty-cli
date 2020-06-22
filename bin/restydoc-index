@@ -370,7 +370,7 @@ sub shell_quote() {
         die "shell_quote(): No way to quote string containing null (\\000) bytes\n";
     }
 
-    if (m|[^\w!%+,\-./:=@^]|) {
+    if ($ret =~ m|[^\w!%+,\-./:=@^]|) {
         $ret =~ s/'/'\\''/g;
 
         # make multiple ' in a row look simpler
