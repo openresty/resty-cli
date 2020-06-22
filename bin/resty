@@ -942,7 +942,7 @@ if ($use_gdb) {
     #warn "cmd: @cmd";
 }
 
-for my $sig (qw/ INT TERM QUIT HUP USR1 USR2 WINCH PIPE HUP /) {
+for my $sig (qw/ INT TERM QUIT HUP USR1 USR2 WINCH PIPE /) {
     $SIG{$sig} = \&forward_signal;
 }
 
