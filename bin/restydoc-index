@@ -12,6 +12,8 @@ use File::Path qw( make_path );
 use Getopt::Long qw( GetOptions );
 use bytes ();
 
+sub shell_quote ($);
+
 GetOptions(
     "outdir=s" => \(my $outdir),
 ) or die "Usage: $0 [--outdir DIR] DIR\n";
@@ -139,12 +141,12 @@ sub wanted {
             or die "cannot copy $docfile to $podfile: $!\n";
 
     } else {
-        my $quoted_mdfile = shell_quote($docfile);
+        my $quoted_mdfile = shell_quote $docfile;
 
         #warn $name;
         #warn "wanted: $File::Find::dir $File::Find::name $_\n";
         $podfile = "$poddir/$name.pod";
-        my $quoted_podfile = shell_quote($podfile);
+        my $quoted_podfile = shell_quote $podfile;
         #warn "$name => $podfile";
         shell("$FindBin::RealBin/md2pod.pl -o $quoted_podfile $quoted_mdfile");
     }
@@ -359,7 +361,7 @@ sub gen_aliases {
     return @aliases;
 }
 
-sub shell_quote() {
+sub shell_quote ($) {
     my $ret = shift;
 
     if (!defined $ret or $ret eq '') {
