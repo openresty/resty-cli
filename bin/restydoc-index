@@ -368,20 +368,7 @@ sub shell_quote ($) {
         return "''";
     }
 
-    if ($ret =~ s/\x00//g) {
-        die "shell_quote(): No way to quote string containing null (\\000) bytes\n";
-    }
-
-    if ($ret =~ m|[^\w!%+,\-./:=@^]|) {
-        $ret =~ s/'/'\\''/g;
-
-        # make multiple ' in a row look simpler
-        # '\'''\'''\'' -> '"'''"'
-        $ret =~ s|((?:'\\''){2,})|q{'"} . (q{'} x (length($1) / 4)) . q{"'}|ge;
-        $ret = "'$ret'";
-        $ret =~ s/^''//;
-        $ret =~ s/''$//;
-    }
+    $ret =~ s/([#&;`'"|*?~!<>^\(\)\[\]\{\}\$\\, ])/\\$1/g;
 
     return $ret;
 }
