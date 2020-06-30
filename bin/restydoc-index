@@ -372,7 +372,7 @@ sub shell_quote ($) {
         die "shell_quote(): No way to quote string containing control characters\n";
     }
 
-    $ret =~ s/([#&;`'"|*?~!<>^\(\)\[\]\{\}\$\\, ])/\\$1/g;
+    $ret =~ s/([#&;`'"|*?~!<>^()\[\]{}\$\\, ])/\\$1/g;
 
     return $ret;
 }
