@@ -368,7 +368,7 @@ sub shell_quote ($) {
         return "''";
     }
 
-    if ($ret =~ s/[\x00-\x1F\t\r\n]//g) {
+    if ($ret =~ s/[[:cntrl:]\t\r\n]//g) {
         die "shell_quote(): No way to quote string containing control characters\n";
     }
 
