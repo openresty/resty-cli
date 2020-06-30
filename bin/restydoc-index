@@ -368,6 +368,10 @@ sub shell_quote ($) {
         return "''";
     }
 
+    if ($ret =~ s/[\x00-\x1F\t\r\n]//g) {
+        die "shell_quote(): No way to quote string containing control characters\n";
+    }
+
     $ret =~ s/([#&;`'"|*?~!<>^\(\)\[\]\{\}\$\\, ])/\\$1/g;
 
     return $ret;
