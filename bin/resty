@@ -30,7 +30,8 @@ my $cwd;
 
 my @all_args = @ARGV;
 
-my (@http_confs, @http_includes, @main_confs, @main_includes, @shdicts, @ns, @src_a);
+my (@http_confs, @stream_confs, @http_includes, @main_confs, @main_includes,
+    @shdicts, @ns, @src_a);
 
 my $errlog_level = "warn";
 my ($use_gdb, $use_valgrind, $use_rr, $version, $gdb_opts, $user_runner);
@@ -188,6 +189,11 @@ my $lua_shared_dicts = '';
                 next;
             }
 
+            if ($arg =~ /^--stream-conf=(.*)/) {
+                push @stream_confs, $1;
+                next;
+            }
+
             if ($arg =~ /^--main-conf=(.*)/) {
                 push @main_confs, $1;
                 next;
@@ -200,6 +206,16 @@ my $lua_shared_dicts = '';
                         "found none.\n";
                 }
                 push @http_confs, $v;
+                next;
+            }
+
+            if ($arg eq '--stream-conf') {
+                my $v = shift @args;
+                if (!defined $v) {
+                    die "option --stream-conf takes an argument but ",
+                        "found none.\n";
+                }
+                push @stream_confs, $v;
                 next;
             }
 
@@ -718,6 +734,7 @@ my $main_include_directives = resolve_includes 'main', \@main_includes;
 my $http_include_directives = resolve_includes 'http', \@http_includes;
 
 my $http_conf_lines = join "", map { "    $_\n" } @http_confs;
+my $stream_conf_lines = join "", map { "    $_\n" } @stream_confs;
 my $main_conf_lines = join "", map { "    $_\n" } @main_confs;
 
 my $conf_file;
@@ -748,6 +765,15 @@ events {
 
 $main_conf_lines
 $main_include_directives
+
+stream {
+    access_log off;
+    lua_socket_log_errors off;
+    resolver @nameservers;
+    lua_regex_cache_max_entries 40960;
+$lua_package_path_config
+$stream_conf_lines
+}
 
 http {
     access_log off;
@@ -806,7 +832,10 @@ $http_conf_lines
             return stdout:write(expand_table(args, true))
         end
 
+        ngx.orig_print = ngx.print
         ngx.print = output
+
+        ngx.orig_say = ngx.say
         ngx.say = function (...)
                 local ok, err = output(...)
                 if ok then
