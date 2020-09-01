@@ -639,7 +639,7 @@ if ($^O eq 'msys') {
 my $child_pid;
 
 END {
-    if (!$is_win32 && !defined($child_pid) && defined $prefix_dir) {
+    if (!$is_win32 && defined($child_pid) && defined $prefix_dir) {
         my $saved_status = $?;
         system("rm -rf $prefix_dir") == 0
             or warn "failed to remove temp directory $prefix_dir: $!";
