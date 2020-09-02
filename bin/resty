@@ -14,7 +14,7 @@ sub split_sh_args ($);
 sub join_sh_args ($);
 sub resolve_includes ($$);
 
-our $VERSION = '0.25';
+our $VERSION = '0.27';
 
 # OpenResty's build system would patch the following line to initialize
 # the $nginx_path variable to point to the path of its own nginx binary
