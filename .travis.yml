@@ -37,7 +37,7 @@ env:
     - OPENSSL_INC=$OPENSSL_PREFIX/include
     - OPENSSL_VER=1.1.1g
   matrix:
-    - NGINX_VERSION=1.19.2
+    - NGINX_VERSION=1.19.3
 
 before_install:
   - sudo apt-get install -y cpanminus
@@ -51,7 +51,7 @@ install:
   - git clone https://github.com/openresty/lua-resty-lrucache.git ../lua-resty-lrucache
   - git clone https://github.com/openresty/nginx-devel-utils.git
   - git clone https://github.com/openresty/lua-nginx-module.git ../lua-nginx-module
-  - git clone -b 1.19.2.x https://github.com/xiaocang/no-pool-nginx.git ../no-pool-nginx
+  - git clone -b 1.19.3.x https://github.com/xiaocang/no-pool-nginx.git ../no-pool-nginx
   - git clone https://github.com/openresty/stream-lua-nginx-module.git ../stream-lua-nginx-module
   - git clone -b v2.1-agentzh https://github.com/openresty/luajit2.git
 
