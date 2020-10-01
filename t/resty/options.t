@@ -622,8 +622,7 @@ TRACE 1 IR.*? TRACE 1 mcode
 io.stderr:write("hello world!~~\n")
 --- out_like
 ^Breakpoint 2, lj_cf_io_method_write \(L=0x[0-9a-f]+\) at lib_io\.c:\d+
-.*
-\#0  lj_cf_io_method_write \(L=0x[0-9a-f]+\) at lib_io\.c:\d+
+.*^\#0  lj_cf_io_method_write \(L=0x[0-9a-f]+\) at lib_io\.c:\d+
 
 
 
@@ -633,8 +632,7 @@ io.stderr:write("hello world!~~\n")
 io.stderr:write("hello world!~~\n")
 --- out_like
 ^Breakpoint 2, lj_cf_io_method_write \(L=0x[0-9a-f]+\) at lib_io\.c:\d+
-.*
-\#0  lj_cf_io_method_write \(L=0x[0-9a-f]+\) at lib_io\.c:\d+
+.*^\#0  lj_cf_io_method_write \(L=0x[0-9a-f]+\) at lib_io\.c:\d+
 
 
 
