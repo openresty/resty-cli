@@ -1142,23 +1142,30 @@ sub gen_lua_code_for_args {
 
     my $luasrc = "arg = {}\n";
 
-    # args[n] (n = 0)
+    # arg[n] (n = 0)
     $luasrc .= "arg[0] = $quoted_luafile\n";
 
-    # args[n] (n > 0)
+    # arg[n] (n > 0)
     for my $i (0 .. $#user_args) {
         my $index = $i + 1;
         my $quoted_arg = quote_as_lua_str($user_args[$i]);
         $luasrc .= "arg[$index] = $quoted_arg\n";
     }
 
-    # args[n] (n < 0)
     my $left_num = $#all_args - $#user_args;
+
+=begin cmt
+
+    # arg[n] (n < 0)
     for my $i (0 .. $left_num - 2) {
         my $index = 0 - $left_num + $i + 1;
         my $quoted_arg = quote_as_lua_str($all_args[$i]);
         $luasrc .= "arg[$index] = $quoted_arg\n";
     }
+
+=end cmt
+
+=cut
 
     # args[n] (n = the index of resty-cli itself)
     my $index = 0 - $left_num;
