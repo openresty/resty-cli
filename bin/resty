@@ -524,6 +524,7 @@ if ($version) {
 my $lua_package_path_config = '';
 if (@inc_dirs) {
     my $package_path = "";
+    my $package_path2 = "";
     my $package_cpath = "";
     for my $dir (@inc_dirs) {
         #if (!-d $dir) {
@@ -533,10 +534,11 @@ if (@inc_dirs) {
 
         if ($is_win32) {
             $package_path .= File::Spec->catfile($dir, "?.lua;");
+            $package_path2 .= File::Spec->catfile($dir, "?/init.lua;");
             $package_cpath .= File::Spec->catfile($dir, "?.so;");
 
         } else {
-            $package_path .= "$dir/?.ljbc;$dir/?.lua;";
+            $package_path .= "$dir/?.ljbc;$dir/?.lua;$dir/?/init.ljbc;$dir/?/init.lua;";
             $package_cpath .= "$dir/?.so;";
         }
     }
