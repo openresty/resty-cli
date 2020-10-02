@@ -664,3 +664,11 @@ qr/nginx: \[emerg\] invalid value "bad" in/
 --- out
 hi
 --- err
+
+
+
+=== TEST 50: --no-stream
+--- opts: --no-stream -e 'ngx.say("hi")'
+--- out
+hi
+--- err

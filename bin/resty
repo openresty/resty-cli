@@ -38,6 +38,7 @@ my ($use_gdb, $use_valgrind, $use_rr, $version, $gdb_opts, $user_runner);
 my ($use_stap, $stap_opts);
 my ($conns_num, @inc_dirs, $jit_dumper, $valgrind_opts, $resolve_ipv6);
 my $lua_shared_dicts = '';
+my $no_stream;
 
 {
     # Note: we do not use external modules like Getopt::Long because we want
@@ -390,7 +391,7 @@ my $lua_shared_dicts = '';
                 next;
             }
 
-            if ($arq eq '--no-stream') {
+            if ($arg eq '--no-stream') {
                 $no_stream = 1;
                 next;
             }
@@ -772,6 +773,10 @@ events {
 
 $main_conf_lines
 $main_include_directives
+_EOC_
+
+if (!$no_stream) {
+    print $out <<_EOC_;
 
 stream {
     access_log off;
@@ -781,6 +786,10 @@ stream {
 $lua_package_path_config
 $stream_conf_lines
 }
+_EOC_
+}
+
+print $out <<_EOC_;
 
 http {
     access_log off;
