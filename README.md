@@ -86,6 +86,9 @@ Options:
     --nginx             Specify the nginx path (this option might be removed
                         in the future).
 
+    --no-stream         Disable the stream {} configuration in auto-generated
+                        nginx.conf.
+
     --ns IP             Specify a custom name server (multiple instances are
                         supported).
 
