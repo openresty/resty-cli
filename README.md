@@ -39,6 +39,8 @@ Videos
 
     [![OpenResty's resty Command-Line Utility Demo](https://img.youtube.com/vi/L1c7aw4mSOo/0.jpg)](https://youtu.be/L1c7aw4mSOo)
 
+You are welcome to subscribe to our [official YouTube channel, OpenResty](https://www.youtube.com/channel/UCXVmwF-UCScv2ftsGoMqxhw).
+
 Synopsis
 ========
 
