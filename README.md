@@ -37,7 +37,7 @@ Videos
 
 * YouTube video "[OpenResty's resty Command-Line Utility Demo](https://www.youtube.com/watch?v=L1c7aw4mSOo)"
 
-[![OpenResty's resty Command-Line Utility Demo](https://img.youtube.com/vi/L1c7aw4mSOo/0.jpg)](https://www.youtube.com/watch?v=L1c7aw4mSOo)
+    [![OpenResty's resty Command-Line Utility Demo](https://img.youtube.com/vi/L1c7aw4mSOo/0.jpg)](https://www.youtube.com/watch?v=L1c7aw4mSOo)
 
 Synopsis
 ========
