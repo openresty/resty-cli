@@ -8,6 +8,7 @@ Table of Contents
 
 * [Name](#name)
 * [Description](#description)
+* [Videos](#videos)
 * [Synopsis](#synopsis)
 * [New Lua API](#new-lua-api)
 * [Installation](#installation)
@@ -30,6 +31,11 @@ directive and run in the context of [ngx.timer](https://github.com/openresty/lua
 [ngx_lua](https://github.com/openresty/lua-nginx-module#readme)'s Lua APIs available in the [ngx.timer](https://github.com/openresty/lua-nginx-module#ngxtimerat) callback context are
 also available in the `resty` utility. We may remove some of the
 remaining limitations in the future though.
+
+Videos
+======
+
+* [![OpenResty's resty Command-Line Utility Demo](https://img.youtube.com/vi/L1c7aw4mSOo/0.jpg)](https://www.youtube.com/watch?v=L1c7aw4mSOo)
 
 Synopsis
 ========
@@ -206,6 +212,8 @@ built by gcc 4.8.3 20140911 (Red Hat 4.8.3-7) (GCC)
 TLS SNI support enabled
 configure arguments: --prefix=/usr/local/openresty/nginx ...
 ```
+
+[Back to TOC](#table-of-contents)
 
 New Lua API
 ===========
