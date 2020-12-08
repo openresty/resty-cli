@@ -539,7 +539,9 @@ if (@inc_dirs) {
         #}
 
         if ($is_win32) {
+            $package_path .= File::Spec->catfile($dir, "?.ljbc;");
             $package_path .= File::Spec->catfile($dir, "?.lua;");
+            $package_path2 .= File::Spec->catfile($dir, "?/init.ljbc;");
             $package_path2 .= File::Spec->catfile($dir, "?/init.lua;");
             $package_cpath .= File::Spec->catfile($dir, "?.so;");
 
