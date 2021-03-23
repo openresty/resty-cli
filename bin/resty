@@ -451,7 +451,7 @@ my $no_stream;
 
     if (@shdicts) {
         for my $v (@shdicts) {
-            if ($v !~ /^ [_a-z]+ \s+ \d+ (?i) [km]? $/x) {
+            if ($v !~ /^ [_a-zA-Z0-9]+ \s+ \d+ (?i) [km]? $/x) {
                 die "ERROR: invalid --shdict option value: $v\n",
                     "  (expecting NAME SIZE)\n";
             }
