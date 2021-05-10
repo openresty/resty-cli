@@ -104,7 +104,7 @@ my $no_stream;
 
             if ($arg eq '-j') {
                 if (defined $jit_dumper) {
-                    die "duplicate -j opton found.\n";
+                    die "duplicate -j option found.\n";
                 }
 
                 $jit_dumper = shift @args;
@@ -116,7 +116,7 @@ my $no_stream;
 
             if ($arg =~ /^-j=?(.*)/) {
                 if (defined $jit_dumper) {
-                    die "duplicate -j opton found.\n";
+                    die "duplicate -j option found.\n";
                 }
 
                 $jit_dumper = $1;
