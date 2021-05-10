@@ -190,10 +190,11 @@ user 0m0.053s
 sys 0m0.015s
 ```
 
-User command-line arguments are also passed:
+User command-line arguments are also passed (the first argument is reserved for
+lua file, here we use `/dev/null`):
 
 ```
-$ resty -e 'print(arg[1], ", ", arg[2])' hello world
+$ resty -e 'print(arg[1], ", ", arg[2])' /dev/null hello world
 hello, world
 ```
 
