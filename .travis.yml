@@ -35,9 +35,9 @@ env:
     - OPENSSL_PREFIX=/opt/ssl
     - OPENSSL_LIB=$OPENSSL_PREFIX/lib
     - OPENSSL_INC=$OPENSSL_PREFIX/include
-    - OPENSSL_VER=1.1.1g
+    - OPENSSL_VER=1.1.1k
   matrix:
-    - NGINX_VERSION=1.19.3
+    - NGINX_VERSION=1.19.9
 
 before_install:
   - sudo apt-get install -y cpanminus
