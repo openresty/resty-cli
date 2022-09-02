@@ -866,6 +866,7 @@ $http_conf_lines
         ngx.flush = function (...) return stdout:flush() end
         -- we cannot close stdout here due to a bug in Lua:
         ngx.eof = function (...) return true end
+        ngx.orig_exit = ngx.exit
         ngx.exit = os.exit
     }
 
