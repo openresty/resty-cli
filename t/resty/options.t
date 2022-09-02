@@ -672,3 +672,38 @@ hi
 --- out
 hi
 --- err
+
+
+
+=== TEST 51: --main-conf <option>
+--- opts: --http-conf "server { listen 10049; location = /t { default_type text/plain; content_by_lua_block { ngx.orig_exit(200) } } }"
+--- src
+local sock = ngx.socket.tcp()
+local port = 10049
+sock:settimeout(500)
+-- ngx.say("connected")
+
+local function req(uri)
+    assert(sock:connect("127.0.0.1", port))
+    local req = "GET " .. uri .. " HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n"
+    assert(sock:send(req))
+    while true do
+        local line, err, part = sock:receive()
+        if line then
+            -- ngx.say(line)
+
+        else
+            if err ~= "closed" then
+                ngx.say("failed to receive a line: ", err, " [", part, "]")
+            end
+            break
+        end
+    end
+end
+
+req("/t")
+print("OK")
+--- out
+OK
+--- err
+--- ret: 0
