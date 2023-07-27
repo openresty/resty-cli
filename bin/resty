@@ -942,6 +942,7 @@ if (defined $src) {
     $label = $luafile;
 }
 
+$label =~ s/[\r\n]//g;
 my @cmd = ($nginx_path,
            '-g', '# ' . $label,
            '-p', "$prefix_dir/", '-c', "conf/nginx.conf");
