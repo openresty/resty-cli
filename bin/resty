@@ -932,7 +932,19 @@ _EOC_
 
 close $out;
 
-my @cmd = ($nginx_path, '-p', "$prefix_dir/", '-c', "conf/nginx.conf");
+my $label;
+if (defined $src) {
+    $label = "-e '$src'";
+    if (defined $luafile) {
+        $label .= " $luafile";
+    }
+} else {
+    $label = $luafile;
+}
+
+my @cmd = ($nginx_path,
+           '-g', '# ' . $label,
+           '-p', "$prefix_dir/", '-c', "conf/nginx.conf");
 
 if ($use_gdb) {
     if ($use_valgrind) {
