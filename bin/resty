@@ -1003,35 +1003,8 @@ if ($use_gdb) {
     #warn "cmd: @cmd";
 }
 
-for my $sig (qw/ INT TERM QUIT HUP USR1 USR2 WINCH PIPE /) {
-    $SIG{$sig} = \&forward_signal;
-}
-
-my $pid = fork();
-
-if (!defined $pid) {
-    die "fork() failed: $!\n";
-}
-
-if ($pid == 0) {  # child process
-    #use Data::Dumper;
-    #warn "exec ", Dumper \@cmd;
-    #warn "exec [@cmd]...";
-    exec(@cmd)
-        or die "ERROR: failed to run command \"@cmd\": $!\n";
-
-} else {
-    $child_pid = $pid;
-    waitpid($child_pid, 0);
-    my $rc = 0;
-    if ($?) {
-        $rc = ($? >> 8);
-        if ($rc == 0) {
-            $rc = $?;
-        }
-    }
-    exit $rc;
-}
+exec(@cmd)
+    or die "ERROR: failed to run command \"@cmd\": $!\n";
 
 sub usage {
     my $rc = shift;
@@ -1249,110 +1222,6 @@ sub resolve_includes ($$) {
     }
 
     return $s;
-}
-
-sub forward_signal {
-    my $signame = shift;
-
-    if ($signame eq 'HUP') {
-        $signame = 'QUIT';
-    }
-
-    if ($child_pid) {
-        #warn "killing $child_pid with $signame ...\n";
-
-        my $loaded_time_hires;
-
-        if ($signame eq 'INT' || $signame eq 'PIPE') {
-            # Note: we use eval here just because explicit use of %!
-            # would trigger auto-loading of the Errno module, which
-            # hurts script startup time.
-            eval q#
-                if (kill(QUIT => $child_pid) == 0) {
-                    if (not $!{ESRCH}) {
-                        die "failed to send QUIT signal to process ",
-                            "$child_pid: $!";
-                    }
-                }
-            #;
-            if ($@) {
-                die "failed to eval: $@";
-            }
-
-            require Time::HiRes;
-            $loaded_time_hires = 1;
-
-            Time::HiRes::sleep(0.1);
-
-            kill KILL => $child_pid;
-            exit($signame eq 'INT' ? 130 : 141);
-
-        } else {
-            # Note: we use eval here just because explicit use of %!
-            # would trigger auto-loading of the Errno module, which
-            # hurts script startup time.
-            eval q#
-                if (kill($signame => $child_pid) == 0) {
-                    if (not $!{ESRCH}) {
-                        die "failed to send $signame signal to process ",
-                            "$child_pid: $!";
-                    }
-                }
-            #;
-            if ($@) {
-                die "failed to eval: $@";
-            }
-        }
-
-        if (!$loaded_time_hires) {
-            require Time::HiRes;
-        }
-
-        my $nap = 0.001;
-        my $total_nap = 0;
-        while ($total_nap < 0.1) {
-            #warn "sleeping $nap";
-            $nap *= 1.5;
-            $total_nap += $nap;
-
-            Time::HiRes::sleep($nap);
-
-            # Note: we use eval here just because explicit use of %!
-            # would trigger auto-loading of the Errno module, which
-            # hurts script startup time.
-
-            my ($ret, $echild);
-            eval qq#
-                \$ret = waitpid \$child_pid, $WNOHANG;
-                \$echild = \$!{ECHILD};
-            #;
-            if ($@) {
-                die "failed to eval: $@";
-            }
-
-            next if $ret == 0;
-            exit 0 if $echild;
-            if ($ret < 0) {
-                die "failed to wait on child process $child_pid: $!";
-            }
-
-            my $rc = 0;
-            if ($signame eq 'INT') {
-                $rc = 130;
-
-            } elsif ($signame eq 'TERM') {
-                $rc = 143;
-            }
-
-            if ($?) {
-                $rc = ($? >> 8);
-                if ($rc == 0) {
-                    $rc = $?;
-                }
-            }
-            exit $rc;
-        }
-    }
 }
 
 sub join_sh_args ($) {
