@@ -34,7 +34,7 @@ my (@http_confs, @stream_confs, @http_includes, @main_confs, @main_includes,
     @shdicts, @ns, @src_a, @load_modules);
 
 my $errlog_level = "warn";
-my ($use_gdb, $use_valgrind, $use_rr, $version, $gdb_opts, $user_runner);
+my ($use_gdb, $use_valgrind, $use_rr, $version, $gdb_opts, $user_runner, $dump_nginx_conf);
 my ($use_stap, $stap_opts);
 my ($conns_num, @inc_dirs, $jit_dumper, $valgrind_opts, $resolve_ipv6);
 my $lua_shared_dicts = '';
@@ -426,6 +426,11 @@ my $no_stream;
                 next;
             }
 
+            if ($arg eq "--dump-nginx-conf") {
+                $dump_nginx_conf = 1;
+                next;
+            }
+
             warn "ERROR: unknown option $arg\n\n";
             usage(1);
 
@@ -770,12 +775,8 @@ if ($is_win32) {
     $conf_file = "$conf_dir/nginx.conf";
 }
 
-open my $out, ">$conf_file"
-    or die "Cannot open $conf_file for writing: $!\n";
-
-print $out <<_EOC_;
+my $conf = <<_EOC_;
 $load_modules_lines
-
 daemon off;
 master_process off;
 worker_processes 1;
@@ -795,7 +796,7 @@ $main_include_directives
 _EOC_
 
 if (!$no_stream) {
-    print $out <<_EOC_;
+    $conf .= <<_EOC_;
 
 stream {
     access_log off;
@@ -808,7 +809,7 @@ $stream_conf_lines
 _EOC_
 }
 
-print $out <<_EOC_;
+$conf .= <<_EOC_;
 
 http {
     access_log off;
@@ -946,6 +947,16 @@ $loader
     }
 }
 _EOC_
+
+if ($dump_nginx_conf) {
+    print $conf;
+    exit;
+}
+
+open my $out, ">$conf_file"
+    or die "Cannot open $conf_file for writing: $!\n";
+
+print $out $conf;
 
 close $out;
 
@@ -1126,6 +1137,9 @@ Options:
     --user-runner CMD   Use CMD as user runner for the underlying nginx process.
 
     -V                  Print version numbers and nginx configurations.
+
+    --dump-nginx-conf   Print the generated nginx configuration file,
+                        without running nginx not the Lua code.
 
     --valgrind          Use valgrind to run nginx.
 

@@ -111,6 +111,9 @@ Options:
 
     -V                  Print version numbers and nginx configurations.
 
+    --dump-nginx-conf   Print the generated nginx configuration file,
+                        without running nginx not the Lua code.
+
     --valgrind          Use valgrind to run nginx.
 
     --valgrind-opts OPTS
@@ -710,3 +713,9 @@ print("OK")
 OK
 --- err
 --- ret: 0
+
+=== TEST 45: --dump-nginx-conf
+--- opts: --dump-nginx-conf --errlog-level notice -e 'print(package.path)'
+--- out_like chop
+error_log stderr notice;
+--- err
