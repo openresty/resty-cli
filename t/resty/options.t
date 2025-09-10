@@ -72,6 +72,9 @@ Options:
 
     -l LIB              Require library "lib".
 
+    --load-module MOD   Specifies nginx module wanted to be loaded.
+                        (multiple instances are supported).
+
     --main-conf CONF    Specifies nginx.conf snippet inserted into the nginx
                         main {} configuration block (multiple instances are
                         supported).
