@@ -1,6 +1,10 @@
 sudo: required
 dist: focal
 
+branches:
+  only:
+    - "master"
+
 os: linux
 
 language: c
@@ -32,20 +36,23 @@ env:
     - LUAJIT_INC=$LUAJIT_PREFIX/include/luajit-2.1
     - LD_LIBRARY_PATH=$LUAJIT_LIB:$LD_LIBRARY_PATH
     - TEST_NGINX_SLEEP=0.003
-    - OPENSSL_PREFIX=/opt/ssl
+    - OPENSSL_PREFIX=/usr/local/openresty/openssl3
     - OPENSSL_LIB=$OPENSSL_PREFIX/lib
     - OPENSSL_INC=$OPENSSL_PREFIX/include
     - OPENSSL_VER=1.1.1g
   matrix:
-    - NGINX_VERSION=1.29.2
+    - NGINX_VERSION=1.29.4
 
 before_install:
-  - sudo apt-get install -y cpanminus
+  - sudo apt-get install -y cpanminus wget
   - sudo cpanm --notest Test::Base
+  - wget -O - https://openresty.org/package/pubkey.gpg | sudo apt-key add -
+  - echo "deb http://openresty.org/package/ubuntu $(lsb_release -sc) main" | sudo tee /etc/apt/sources.list.d/openresty.list
+  - sudo apt-get update
+  - sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends openresty-pcre2 openresty-openssl3 openresty-pcre2-dev openresty-openssl3-dev
 
 install:
   - if [ ! -d download-cache ]; then mkdir download-cache; fi
-  - if [ ! -f download-cache/openssl-$OPENSSL_VER.tar.gz ]; then wget -O download-cache/openssl-$OPENSSL_VER.tar.gz https://www.openssl.org/source/openssl-$OPENSSL_VER.tar.gz; fi
   - git clone https://github.com/openresty/openresty.git ../openresty
   - git clone https://github.com/openresty/lua-resty-core.git ../lua-resty-core
   - git clone https://github.com/openresty/lua-resty-lrucache.git ../lua-resty-lrucache
@@ -56,12 +63,6 @@ install:
   - git clone -b v2.1-agentzh https://github.com/openresty/luajit2.git
 
 script:
-  - tar zxf download-cache/openssl-$OPENSSL_VER.tar.gz
-  - cd openssl-$OPENSSL_VER/
-  - ./config shared --prefix=$OPENSSL_PREFIX -DPURIFY > build.log 2>&1 || (cat build.log && exit 1)
-  - make -j$JOBS > build.log 2>&1 || (cat build.log && exit 1)
-  - sudo make PATH=$PATH install_sw > build.log 2>&1 || (cat build.log && exit 1)
-  - cd ..
   - cd luajit2/
   - make -j$JOBS CCDEBUG=-g Q= PREFIX=$LUAJIT_PREFIX CC=$CC XCFLAGS='-DLUA_USE_APICHECK -DLUA_USE_ASSERT -msse4.2'
   - sudo make install PREFIX=$LUAJIT_PREFIX
