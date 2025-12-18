@@ -1,6 +1,10 @@
 sudo: required
 dist: focal
 
+branches:
+  only:
+    - "master"
+
 os: linux
 
 language: c
