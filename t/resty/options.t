@@ -85,6 +85,9 @@ Options:
     --nginx             Specify the nginx path (this option might be removed
                         in the future).
 
+    --no-clean          Do not remove the temporary nginx prefix directory
+                        on exit (useful for debugging the generated files).
+
     --no-stream         Disable the stream {} configuration in auto-generated
                         nginx.conf.
 

@@ -39,6 +39,7 @@ my ($use_stap, $stap_opts);
 my ($conns_num, @inc_dirs, $jit_dumper, $valgrind_opts, $resolve_ipv6);
 my $lua_shared_dicts = '';
 my $no_stream;
+my $no_clean;
 
 {
     # Note: we do not use external modules like Getopt::Long because we want
@@ -411,6 +412,11 @@ my $no_stream;
                 next;
             }
 
+            if ($arg eq '--no-clean') {
+                $no_clean = 1;
+                next;
+            }
+
             if ($arg eq '--rr') {
                 $use_rr = 1;
                 next;
@@ -628,7 +634,7 @@ if ($^O eq 'msys') {
 } else {
     if ($is_win32 || !-d '/tmp') {
         require File::Temp;
-        $prefix_dir = File::Temp::tempdir(CLEANUP => 1);
+        $prefix_dir = File::Temp::tempdir(CLEANUP => $no_clean ? 0 : 1);
 
         if ($^O eq 'MSWin32') {
             require Win32;
@@ -670,9 +676,14 @@ my $child_pid;
 
 END {
     if (!$is_win32 && defined($child_pid) && defined $prefix_dir) {
-        my $saved_status = $?;
-        system("rm -rf $prefix_dir") == 0 or warn "failed to remove temp directory $prefix_dir: $!";
-        $? = $saved_status;  # restore the exit code
+        if ($no_clean) {
+            warn "kept the temp directory $prefix_dir\n";
+
+        } else {
+            my $saved_status = $?;
+            system("rm -rf $prefix_dir") == 0 or warn "failed to remove temp directory $prefix_dir: $!";
+            $? = $saved_status;  # restore the exit code
+        }
     }
 }
 
@@ -1111,6 +1122,9 @@ Options:
 
     --nginx             Specify the nginx path (this option might be removed
                         in the future).
+
+    --no-clean          Do not remove the temporary nginx prefix directory
+                        on exit (useful for debugging the generated files).
 
     --no-stream         Disable the stream {} configuration in auto-generated
                         nginx.conf.
