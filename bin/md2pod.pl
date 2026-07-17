@@ -56,7 +56,9 @@ sub process_file {
         #$list_level ? ", list level $list_level" : ();
 
         if ($in_code) {
-            if ($add_indent && m/ \G ^ ``` \s* \n? $ /gcxm) {
+            if ($add_indent && / \G (?= ` ) /x
+                && m/ \G ^ ``` \s* \n? $ /gcxm)
+            {
                 undef $in_code;
                 undef $add_indent;
                 $just_seen_newline = 1;
@@ -64,7 +66,7 @@ sub process_file {
             }
 
             if (!$add_indent) {
-                if (m/ \G ^ \s* \n /gcxm) {
+                if (/ \G (?= \s ) /x && m/ \G ^ \s* \n /gcxm) {
                     $just_seen_newline = 1;
                     $out .= "\n";
                     undef $in_code;
@@ -73,7 +75,7 @@ sub process_file {
 
                 undef $just_seen_newline;
 
-                if (m/ \G ^ (\s+) /gcxm) {
+                if (/ \G (?= \s ) /x && m/ \G ^ (\s+) /gcxm) {
                     my $leading_spaces = $1;
                     if (length $leading_spaces < 4) {
                         # new paragraph
@@ -149,13 +151,17 @@ sub process_file {
                 next;
             }
 
-            if (/ \G ^ \s* \<!--.*?--> \s* /gcxms) {
+            if (/ \G (?= [\s<] ) /x
+                && / \G ^ \s* \<!--.*?--> \s* /gcxms)
+            {
                 $out .= "\n";
                 $just_seen_newline = 1;
                 next;
             }
 
-            if (/ \G ^ \s* (?: \n | $ ) /gcxm) {
+            if (/ \G (?= \s | \z ) /x
+                && / \G ^ \s* (?: \n | $ ) /gcxm)
+            {
                 $just_seen_newline = 1;
                 $out .= "\n";
 
@@ -175,14 +181,18 @@ sub process_file {
                 next;
             }
 
-            if (/ \G ^ ``` \s* (?: \w+ \s* )? (?: \n | $ ) /gcxm) {
+            if (/ \G (?= ` ) /x
+                && / \G ^ ``` \s* (?: \w+ \s* )? (?: \n | $ ) /gcxm)
+            {
                 $in_code = 1;
                 $add_indent = 1;
                 $out .= "\n";
                 next;
             }
 
-            if (/ \G ^ (\s*) ( [-+*] | \d+ \. ) \s+ /gcxm) {
+            if (/ \G (?= [\s+*\d-] ) /x
+                && / \G ^ (\s*) ( [-+*] | \d+ \. ) \s+ /gcxm)
+            {
                 my ($leading_space, $prefix) = ($1, $2);
 
                 if (!defined $list_level) {
@@ -344,7 +354,7 @@ sub process_file {
                 next;
             }
 
-            if (/ \G ^ (\#+) \s+ /gcxm) {
+            if (/ \G (?= \# ) /x && / \G ^ (\#+) \s+ /gcxm) {
                 undef $just_seen_newline;
 
                 if ($list_level) {
