@@ -123,7 +123,7 @@ sub process_file {
         } else {
             # !$in_code
 
-            if (/ \G ^ ( \S .* ) \n \s* ([-=]+) \s* \n? $ /gcxm) {
+            if (/ \G ( \S [^\n]* ) \n \s* ([-=]+) \s* \n? (?= \n | \z ) /gcx) {
                 my ($title, $type) = ($1, $2);
 
                 #die "Hit!";
