@@ -46,17 +46,29 @@ sub process_xml_file {
     while (1) {
         #warn "scanner: ", pos_str($_);
 
-        next if / \G ^ \s* (?: \n | $ ) /xgcm;
+        my $next_char = do {
+            use bytes;
+            substr($_, pos($_) // 0, 1);
+        };
 
-        if (/\G < \? xml .*? \? > \s* /gcxms
-            || /\G \s* <!-- .*? --> \s* /gcxms
-            || /\G <!DOCTYPE .*? > \s* /gcxms)
-        {
-            # ignore
-            next;
-        }
+        next if ($next_char eq '' || $next_char =~ /\s/)
+            && / \G ^ \s* (?: \n | $ ) /xgcm;
 
-        if (/ \G < \s* article ( (?: \s+ \w+ \s* = \s* " .*? " )* ) > \s* /gcxms) {
+        if (/ \G \s* < /x) {
+            my $tag = '';
+            if (/ \G \s* < \s* \/? \s* ([\w-]+) /x) {
+                $tag = lc $1;
+            }
+
+            if (/\G < \? xml .*? \? > \s* /gcxms
+                || /\G \s* <!-- .*? --> \s* /gcxms
+                || /\G <!DOCTYPE .*? > \s* /gcxms)
+            {
+                # ignore
+                next;
+            }
+
+        if ($tag eq 'article' && / \G < \s* article ( (?: \s+ \w+ \s* = \s* " .*? " )* ) > \s* /gcxms) {
             my $attrs = parse_attrs($1);
             #warn "article: ", Dumper($attrs);
             $pod .= "\n=head1 Name\n\n";
@@ -72,7 +84,7 @@ sub process_xml_file {
             next;
         }
 
-        if (/ \G < \s* section ( (?: \s+ \w+ \s* = \s* " .*? " )* ) > \s* /gcxm) {
+        if ($tag eq 'section' && / \G < \s* section ( (?: \s+ \w+ \s* = \s* " .*? " )* ) > \s* /gcxm) {
             my $attrs = parse_attrs($1);
 
             #warn "secton: ", Dumper($attrs);
@@ -89,25 +101,27 @@ sub process_xml_file {
             next;
         }
 
-        if (m{ \G < \s* / \s* section \s* > \s* }gcxs) {
+        if ($tag eq 'section' && m{ \G < \s* / \s* section \s* > \s* }gcxs) {
             $level--;
             next;
         }
 
-        if (m{ \G < \s* / \s* article \s* > \s* }gcxs) {
+        if ($tag eq 'article' && m{ \G < \s* / \s* article \s* > \s* }gcxs) {
             $pod .= "\n";
             next;
         }
 
-        if (m{ \G < \s* link ( (?: \s+ \w+ \s* = \s* " [^"]* " )* ) > }gcxs) {
+        if ($tag eq 'link' && m{ \G < \s* link ( (?: \s+ \w+ \s* = \s* " [^"]* " )* ) > }gcxs) {
             $link_attrs = parse_attrs($1);
 
             if (defined $link_attrs->{doc} || defined $link_attrs->{url}) {
                 $pod .= "L<";
             }
+
+            next;
         }
 
-        if (m{ \G < \s* / \s* link \s* > }gcxs) {
+        if ($tag eq 'link' && m{ \G < \s* / \s* link \s* > }gcxs) {
             if (!defined $link_attrs) {
                 die "No attributes for link: $&";
             }
@@ -133,7 +147,7 @@ sub process_xml_file {
             next;
         }
 
-        if (m{ \G < \s* link ( (?: \s+ \w+ \s* = \s* " [^"]* " )* ) \s* / \s* > }gcxs) {
+        if ($tag eq 'link' && m{ \G < \s* link ( (?: \s+ \w+ \s* = \s* " [^"]* " )* ) \s* / \s* > }gcxs) {
             my $attrs = parse_attrs($1);
             my $doc = $attrs->{doc};
             my $id = $attrs->{id};
@@ -151,7 +165,7 @@ sub process_xml_file {
             next;
         }
 
-        if (m{ \G < \s* (/?) \s* literal \s* > }gcxs) {
+        if ($tag eq 'literal' && m{ \G < \s* (/?) \s* literal \s* > }gcxs) {
             my $closing = $1;
             if ($closing) {
                 $pod .= ">";
@@ -161,20 +175,12 @@ sub process_xml_file {
             next;
         }
 
-        if (m{ \G < \s* /? \s* commercial_version \s* > }gcxs)
+        if ($tag eq 'commercial_version' && m{ \G < \s* /? \s* commercial_version \s* > }gcxs)
         {
             next;
         }
 
-        if (m{ \G < \s* example \s* > (.*?) < \s* / \s* example \s* > }gcxs)
-        {
-            my $code = decode_xml($1);
-            $code =~ s/^/    /gm;
-            $pod .= "\n$code\n";
-            next;
-        }
-
-        if (m{ \G < \s* programlisting \s* > (.*?) < \s* / \s* programlisting \s* > }gcxs)
+        if ($tag eq 'example' && m{ \G < \s* example \s* > (.*?) < \s* / \s* example \s* > }gcxs)
         {
             my $code = decode_xml($1);
             $code =~ s/^/    /gm;
@@ -182,14 +188,22 @@ sub process_xml_file {
             next;
         }
 
-        if (m{ \G < \s* registered \s* > (.*?) < \s* / \s* registered \s* > }gcxs) {
+        if ($tag eq 'programlisting' && m{ \G < \s* programlisting \s* > (.*?) < \s* / \s* programlisting \s* > }gcxs)
+        {
+            my $code = decode_xml($1);
+            $code =~ s/^/    /gm;
+            $pod .= "\n$code\n";
+            next;
+        }
+
+        if ($tag eq 'registered' && m{ \G < \s* registered \s* > (.*?) < \s* / \s* registered \s* > }gcxs) {
             my $label = encode_pod(decode_xml($1));
             $label =~ s/^\s+|\s+$//gs;
             $pod .= "$label E<copy>";
             next;
         }
 
-        if (m{ \G < \s* list ( (?: \s+ \w+ \s* = \s* " [^"]* " )* )  > }gcxs) {
+        if ($tag eq 'list' && m{ \G < \s* list ( (?: \s+ \w+ \s* = \s* " [^"]* " )* )  > }gcxs) {
             my $attrs = parse_attrs($1);
 
             #warn pos_str($_), " Found list!";
@@ -205,53 +219,53 @@ sub process_xml_file {
             next;
         }
 
-        if (m{ \G < \s* / \s* list \s* > }gcxs) {
+        if ($tag eq 'list' && m{ \G < \s* / \s* list \s* > }gcxs) {
             $pod .= "\n=back\n\n";
             pop @lists;
             next;
         }
 
-        if (m{ \G < \s* / \s* listitem \s* > }gcxs) {
+        if ($tag eq 'listitem' && m{ \G < \s* / \s* listitem \s* > }gcxs) {
             # do nothing...
             next;
         }
 
-        if (m{ \G < \s* note \s* > }gcxs) {
+        if ($tag eq 'note' && m{ \G < \s* note \s* > }gcxs) {
             $pod .= "\nB<NOTE>\n";
             next;
         }
 
-        if (m{ \G < \s* / \s* note \s* > }gcxs) {
+        if ($tag eq 'note' && m{ \G < \s* / \s* note \s* > }gcxs) {
             next;
         }
 
-        if (m{ \G < \s* value \s* > }gcxs) {
+        if ($tag eq 'value' && m{ \G < \s* value \s* > }gcxs) {
             $pod .= "I<C<";
             next;
         }
 
-        if (m{ \G < \s* / \s* value \s* > }gcxs) {
+        if ($tag eq 'value' && m{ \G < \s* / \s* value \s* > }gcxs) {
             $pod .= ">>";
             next;
         }
 
-        if (m{ \G < \s* path \s* > }gcxs) {
+        if ($tag eq 'path' && m{ \G < \s* path \s* > }gcxs) {
             $pod .= "F<";
             next;
         }
 
-        if (m{ \G < \s* / \s* path \s* > }gcxs) {
+        if ($tag eq 'path' && m{ \G < \s* / \s* path \s* > }gcxs) {
             $pod .= ">";
             next;
         }
 
-        if (m{ \G < \s* appeared-in \s* > (.*?) < \s* / \s* appeared-in \s* > }gcxs) {
+        if ($tag eq 'appeared-in' && m{ \G < \s* appeared-in \s* > (.*?) < \s* / \s* appeared-in \s* > }gcxs) {
             my $version = decode_xml($1);
             $pod .= "\nThis directive appeared in version " . encode_pod($version) . ".\n\n";
             next;
         }
 
-        if (m{ \G < \s* syntax ( (?: \s+ \w+ \s* = \s* " [^"]* " )+ ) \s* / \s* > }gcxs) {
+        if ($tag eq 'syntax' && m{ \G < \s* syntax ( (?: \s+ \w+ \s* = \s* " [^"]* " )+ ) \s* / \s* > }gcxs) {
             my $attrs = parse_attrs($1);
             if ($attrs->{block} eq 'yes') {
                 if (!$directive) {
@@ -265,7 +279,7 @@ sub process_xml_file {
             next;
         }
 
-        if (m{ \G < \s* syntax ( (?: \s+ \w+ \s* = \s* " [^"]* " )+ ) \s* > }gcxs) {
+        if ($tag eq 'syntax' && m{ \G < \s* syntax ( (?: \s+ \w+ \s* = \s* " [^"]* " )+ ) \s* > }gcxs) {
             my $attrs = parse_attrs($1);
             if ($attrs->{block} eq 'yes') {
                 if (!$directive) {
@@ -280,7 +294,9 @@ sub process_xml_file {
             next;
         }
 
-        if (m{ \G < \s* ( syntax | default | context ) \s* > }gcxs) {
+        if (($tag eq 'syntax' || $tag eq 'default' || $tag eq 'context')
+            && m{ \G < \s* ( syntax | default | context ) \s* > }gcxs)
+        {
             my $tag = $1;
             if ($tag eq 'syntax') {
                 undef $syntax_block;
@@ -291,7 +307,9 @@ sub process_xml_file {
             next;
         }
 
-        if (m{ \G < \s* / \s* ( syntax | default | context ) \s* > }gcxs) {
+        if (($tag eq 'syntax' || $tag eq 'default' || $tag eq 'context')
+            && m{ \G < \s* / \s* ( syntax | default | context ) \s* > }gcxs)
+        {
             my $tag = $1;
             if ($tag eq 'syntax' && $syntax_block) {
                 $pod .= " { B<...> } >\n\n";
@@ -301,12 +319,14 @@ sub process_xml_file {
             next;
         }
 
-        if (m{ \G < \s* (?: syntax | default | context ) \s* / \s * > }gcxs) {
+        if (($tag eq 'syntax' || $tag eq 'default' || $tag eq 'context')
+            && m{ \G < \s* (?: syntax | default | context ) \s* / \s * > }gcxs)
+        {
             next;
         }
 
 
-        if (m{ \G < \s* listitem \b [^>]* > }gcxs) {
+        if ($tag eq 'listitem' && m{ \G < \s* listitem \b [^>]* > }gcxs) {
             my $list = $lists[-1];
             if (!defined $list) {
                 error($xmlfile, $_, "listitem used outside list");
@@ -332,7 +352,7 @@ sub process_xml_file {
             next;
         }
 
-        if (m{ \G < \s* tag-name \b [^>]* > }gcxs) {
+        if ($tag eq 'tag-name' && m{ \G < \s* tag-name \b [^>]* > }gcxs) {
             my $list = $lists[-1];
 
             if (!defined $list) {
@@ -351,12 +371,12 @@ sub process_xml_file {
             next;
         }
 
-        if (m{ \G < \s* / \s* tag-name \s* > }gcxs) {
+        if ($tag eq 'tag-name' && m{ \G < \s* / \s* tag-name \s* > }gcxs) {
             $pod .= "\n\n";
             next;
         }
 
-        if (m{ \G < \s* tag-desc \s* > }gcxs) {
+        if ($tag eq 'tag-desc' && m{ \G < \s* tag-desc \s* > }gcxs) {
             my $list = $lists[-1];
 
             if (!defined $list) {
@@ -374,91 +394,100 @@ sub process_xml_file {
             next;
         }
 
-        if (m{ \G < \s* / \s* tag-desc \s* > }gcxs) {
+        if ($tag eq 'tag-desc' && m{ \G < \s* / \s* tag-desc \s* > }gcxs) {
             $pod .= "\n";
             next;
         }
 
-        if (m{ \G < \s* table \b [^>]* > (.*?) < \s* / \s* table \s* > }gcxs) {
+        if ($tag eq 'table' && m{ \G < \s* table \b [^>]* > (.*?) < \s* / \s* table \s* > }gcxs) {
             $pod .= process_table($1);
             next;
         }
 
-        if (m{ \G < \s* para \b .*? \s* > }gcxs) {
+        if ($tag eq 'para' && m{ \G < \s* para \b .*? \s* > }gcxs) {
             $pod .= "\n";
             next;
         }
 
-        if (m{ \G < \s* / \s* para \s* > }gcxs) {
+        if ($tag eq 'para' && m{ \G < \s* / \s* para \s* > }gcxs) {
             $pod .= "\n";
             next;
         }
 
-        if (m{ \G < \s* (?: c-def | var | c-func | header ) \s* > }gcxs) {
+        if (($tag eq 'c-def' || $tag eq 'var' || $tag eq 'c-func' || $tag eq 'header')
+            && m{ \G < \s* (?: c-def | var | c-func | header ) \s* > }gcxs)
+        {
             $pod .= "C<";
             next;
         }
 
-        if (m{ \G < \s* / \s* (?: c-def | var | c-func | header ) \s* > }gcxs) {
+        if (($tag eq 'c-def' || $tag eq 'var' || $tag eq 'c-func' || $tag eq 'header')
+            && m{ \G < \s* / \s* (?: c-def | var | c-func | header ) \s* > }gcxs)
+        {
             $pod .= ">";
             next;
         }
 
-        if (m{ \G < \s* (?: http-status ( (?: \s+ \w+ \s* = \s* " [^"]* " )* ) ) \s* /? \s* > }gcxs) {
+        if ($tag eq 'http-status' && m{ \G < \s* (?: http-status ( (?: \s+ \w+ \s* = \s* " [^"]* " )* ) ) \s* /? \s* > }gcxs) {
             my $attrs = parse_attrs($1);
             $pod .= "C<$attrs->{code}> (C<" . encode_pod($attrs->{text}) . ">)";
             next;
         }
 
-        if (m{ \G < \s* command \s* > }gcxs) {
+        if ($tag eq 'command' && m{ \G < \s* command \s* > }gcxs) {
             $pod .= "C<";
             next;
         }
 
-        if (m{ \G < \s* br \s* / \s* > }gcxs) {
+        if ($tag eq 'br' && m{ \G < \s* br \s* / \s* > }gcxs) {
             $pod .= "\n\n";
+            next;
         }
 
-        if (m{ \G < \s* / \s* command \s* > }gcxs) {
+        if ($tag eq 'command' && m{ \G < \s* / \s* command \s* > }gcxs) {
             $pod .= ">";
             next;
         }
 
-        if (m{ \G < \s* (?: i | emphasis ) \s* > }gcxsi) {
+        if (($tag eq 'i' || $tag eq 'emphasis')
+            && m{ \G < \s* (?: i | emphasis ) \s* > }gcxsi)
+        {
             $pod .= "I<";
             next;
         }
 
-        if (m{ \G < \s* b \s* > }gcxsi) {
+        if ($tag eq 'b' && m{ \G < \s* b \s* > }gcxsi) {
             $pod .= "B<";
             next;
         }
 
-        if (m{ \G < \s* / \s* (?: [bi] | emphasis ) \s* > }gcxsi) {
+        if (($tag eq 'b' || $tag eq 'i' || $tag eq 'emphasis')
+            && m{ \G < \s* / \s* (?: [bi] | emphasis ) \s* > }gcxsi)
+        {
             $pod .= ">";
             next;
         }
 
-        if (m{ \G < \s* /? \s* nobr \s* > }gcxs) {
+        if ($tag eq 'nobr' && m{ \G < \s* /? \s* nobr \s* > }gcxs) {
             next;
         }
 
-        if (m{ \G < \s* initial \s* > }gcxs) {
+        if ($tag eq 'initial' && m{ \G < \s* initial \s* > }gcxs) {
             $pod .= "B<";
             next;
         }
 
-        if (m{ \G < \s* / \s* initial \s* > }gcxs) {
+        if ($tag eq 'initial' && m{ \G < \s* / \s* initial \s* > }gcxs) {
             $pod .= ">";
             next;
         }
 
-        if (m{ \G < \s* mainline_version \s* / \s* > }gcxs) {
+        if ($tag eq 'mainline_version' && m{ \G < \s* mainline_version \s* / \s* > }gcxs) {
             $pod .= $mainline_version;
             next;
         }
 
-        if (m{ \G < \s* module ( (?: \s+ \w+ \s* = \s* " [^"]* " )* ) \s* > }gcxs) {
+        if ($tag eq 'module' && m{ \G < \s* module ( (?: \s+ \w+ \s* = \s* " [^"]* " )* ) \s* > }gcxs) {
             my $attrs = parse_attrs($1);
             if (!$attrs->{name}) {
                 error($xmlfile, $_, "no \"name\" attribute found for <module>");
@@ -472,11 +501,11 @@ _EOC_
             next;
         }
 
-        if (m{ \G < \s* / \s* module \s* > }gcxs) {
+        if ($tag eq 'module' && m{ \G < \s* / \s* module \s* > }gcxs) {
             next;
         }
 
-        if (m{ \G < \s* directive ( (?: \s+ \w+ \s* = \s* " [^"]* " )* ) \s* > }gcxs) {
+        if ($tag eq 'directive' && m{ \G < \s* directive ( (?: \s+ \w+ \s* = \s* " [^"]* " )* ) \s* > }gcxs) {
             my $attrs = parse_attrs($1);
             if (!$attrs->{name}) {
                 error($xmlfile, $_, "no \"name\" attribute found for <directive>");
@@ -492,10 +521,12 @@ _EOC_
             next;
         }
 
-        if (m{ \G < \s* / \s* directive > }gcxs) {
-            $level--;
-            $pod .= "\n";
-            next;
+            if ($tag eq 'directive' && m{ \G < \s* / \s* directive > }gcxs) {
+                $level--;
+                $pod .= "\n";
+                next;
+            }
+
         }
 
         if (m{ \G (\&(\w+);) }gcxs) {
