@@ -41,7 +41,7 @@ env:
     - OPENSSL_INC=$OPENSSL_PREFIX/include
     - OPENSSL_VER=1.1.1g
   matrix:
-    - NGINX_VERSION=1.29.8
+    - NGINX_VERSION=1.31.0
 
 before_install:
   - sudo apt-get install -y cpanminus wget
