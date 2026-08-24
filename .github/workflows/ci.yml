@@ -81,5 +81,5 @@ jobs:
           cd ..
           export PATH=$PATH:`pwd`/nginx-devel-utils
           ngx-build $NGINX_VERSION --with-ipv6 --with-cc-opt="-I$PCRE_INC -I$OPENSSL_INC" --with-ld-opt="-L$PCRE_LIB -L$OPENSSL_LIB -Wl,-rpath,$PCRE_LIB:$OPENSSL_LIB" --with-http_realip_module --with-http_ssl_module --add-module=../lua-nginx-module --add-module=../stream-lua-nginx-module --with-debug --with-stream --with-stream_ssl_module
-          export PATH=$PATH:`pwd`/work/nginx/sbin
+          export PATH=`pwd`/work/nginx/sbin:$PATH
           prove -I. -r t
